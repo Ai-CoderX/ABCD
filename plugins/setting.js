@@ -14,6 +14,135 @@ function extractNumber(jid) {
     return jid.split('@')[0];
 }
 
+// ===============================
+// SUDO COMMAND
+// ===============================
+cmd({
+    pattern: "sudo",
+    alias: ["sudo"],
+    desc: "Add a user to sudo list",
+    category: "settings",
+    react: "👑",
+    filename: __filename
+},
+async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfig, sanitizedNumber }) => {
+    if (!isCreator) {
+        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
+    }
+
+    // Get target JID directly from mentioned or quoted
+    let target = m.mentionedJid?.[0] || (m.quoted?.sender ?? null);
+
+    // If args provided, try to match with @lid format
+    if (!target && args[0]) {
+        // Check if args[0] is already a JID format (contains @)
+        if (args[0].includes('@')) {
+            target = args[0];
+        } else {
+            // Assume it's a number, but WhatsApp uses @lid now
+            return reply("⚠️ Please mention the user or reply to their message.\n\n*Usage:* .sudo @user or reply to user's message");
+        }
+    }
+
+    if (!target) {
+        return reply("⚠️ Please provide a target to add to sudo!\n\n*Usage:* .sudo @user or reply to a message");
+    }
+
+    // Check if trying to sudo the bot itself
+    if (target === conn.user.id) {
+        return reply("🤖 I can't sudo myself!");
+    }
+
+    let sudoList = Array.isArray(userConfig.SUDO) ? [...userConfig.SUDO] : [];
+
+    if (sudoList.includes(target)) {
+        return reply("❌ This user is already in sudo list!");
+    }
+
+    sudoList.push(target);
+    userConfig.SUDO = sudoList;
+    await updateUserConfig(sanitizedNumber, userConfig);
+    
+    await reply(`✅ *User added to sudo list successfully!*\n\nUser: ${target}`);
+});
+
+// ===============================
+// DELSUDO COMMAND
+// ===============================
+cmd({
+    pattern: "delsudo",
+    alias: ["delsudo", "removesudo"],
+    desc: "Remove a user from sudo list",
+    category: "settings",
+    react: "👑",
+    filename: __filename
+},
+async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfig, sanitizedNumber }) => {
+    if (!isCreator) {
+        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
+    }
+
+    // Get target JID directly from mentioned or quoted
+    let target = m.mentionedJid?.[0] || (m.quoted?.sender ?? null);
+
+    // If args provided, try to match with @lid format
+    if (!target && args[0]) {
+        if (args[0].includes('@')) {
+            target = args[0];
+        } else {
+            return reply("⚠️ Please mention the user or reply to their message.\n\n*Usage:* .delsudo @user or reply to user's message");
+        }
+    }
+
+    if (!target) {
+        return reply("⚠️ Please provide a target to remove from sudo!\n\n*Usage:* .delsudo @user or reply to a message");
+    }
+
+    let sudoList = Array.isArray(userConfig.SUDO) ? [...userConfig.SUDO] : [];
+
+    if (!sudoList.includes(target)) {
+        return reply("❌ This user is not in sudo list!");
+    }
+
+    sudoList = sudoList.filter(jid => jid !== target);
+    userConfig.SUDO = sudoList;
+    await updateUserConfig(sanitizedNumber, userConfig);
+    
+    await reply(`✅ *User removed from sudo list successfully!*\n\nUser: ${target}`);
+});
+
+// ===============================
+// LISTSUDO COMMAND
+// ===============================
+cmd({
+    pattern: "listsudo",
+    alias: ["listsudo", "sudoers"],
+    desc: "Show list of sudo users",
+    category: "settings",
+    react: "📋",
+    filename: __filename
+},
+async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, userConfig, sanitizedNumber }) => {
+    if (!isCreator) {
+        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
+    }
+
+    let sudoList = Array.isArray(userConfig.SUDO) ? userConfig.SUDO : [];
+
+    if (sudoList.length === 0) {
+        return reply("📋 *No sudo users found.*");
+    }
+
+    let listText = "*📋 Sudo Users List:*\n\n";
+    for (let i = 0; i < sudoList.length; i++) {
+        const user = sudoList[i];
+        const userNumber = extractNumber(user);
+        listText += `${i + 1}. ${userNumber}\n`;
+    }
+
+    await reply(listText);
+});
+
 cmd({
     pattern: "statusemoji",
     alias: ["semoji", "likeemoji"],

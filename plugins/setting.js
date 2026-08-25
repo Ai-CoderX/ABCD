@@ -1214,7 +1214,39 @@ async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, u
 });
 
 // ===============================
-// SETTINGS COMMAND
+// MENTION REPLY COMMAND
+// ===============================
+cmd({
+    pattern: "mentionreply",
+    alias: ["mentreply", "mr"],
+    desc: "Toggle mention reply feature",
+    category: "settings",
+    react: "💬",
+    filename: __filename
+},
+async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, userConfig, sanitizedNumber }) => {
+    if (!isCreator) {
+        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
+    }
+
+    if (!args[0]) {
+        return reply(`📌 *Usᴀɢᴇ:* mentionreply on/off\n*Cᴜʀʀᴇɴᴛ:* ${userConfig.MENTION_REPLY || 'false'}\n\nWʜᴇɴ ᴇɴᴀʙʟᴇᴅ, ᴛʜᴇ ʙᴏᴛ ᴡɪʟʟ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ ʀᴇᴘʟʏ ᴡʜᴇɴ ᴍᴇɴᴛɪᴏɴᴇᴅ.`);
+    }
+
+    const value = args[0].toLowerCase();
+    if (value !== 'on' && value !== 'off') {
+        return reply('❌ *Pʟᴇᴀsᴇ ᴜsᴇ:* on ᴏʀ off');
+    }
+
+    const newValue = value === 'on' ? 'true' : 'false';
+    userConfig.MENTION_REPLY = newValue;
+    await updateUserConfig(sanitizedNumber, userConfig);
+    
+    await reply(`✅ *Mᴇɴᴛɪᴏɴ Rᴇᴘʟʏ sᴇᴛ ᴛᴏ:* ${newValue}\n\n${newValue === 'true' ? '💬 Bot will now reply when mentioned.' : '🔇 Bot will not reply when mentioned.'}`);
+});
+
+// ===============================
+// SETTINGS COMMAND (New Clean UI)
 // ===============================
 cmd({
     pattern: "settings",
@@ -1229,66 +1261,56 @@ async (conn, mek, m, { from, reply, isCreator, prefix, userConfig }) => {
         return reply("*📛 This is an owner command.*");
     }
     
-    const settingsText = `
-┌─⧽ *${userConfig.BOT_NAME || config.BOT_NAME} Settings Menu* ⚙️
-│
-│ 📁 *General Settings*
-│ • welcome on/off
-│ • goodbye on/off
-│ • setwelcome <message>
-│ • setgoodbye <message>
-│
-│ 📁 *Anti Features*
-│ • antistatus on/off
-│ • antilink on/off/warn/delete
-│ • antidelete on/off
-│ • anticall on/off
-│ • anticallmsg <message>
-│
-│ 📁 *Auto Features*
-│ • autoread on/off
-│ • recording on/off
-│ • statusview on/off
-│ • autoreact on/off
-│ • autotyping on/off
-│ • online on/off
-│
-│ 📁 *Settings*
-│ • ban @user
-│ • unban @user
-│ • banlist
-│ • sudo @user
-│ • delsudo @user
-│ • listsudo
-│
-│ 📁 *Bot Settings*
-│ • mode public/private/inbox
-│ • prefix <new_prefix>
-│ • botname <name>
-│ • ownername <name>
-│ • ownernumber <number>
-│ • description <text>
-│ • botdp <url> or reply to image
-│ • stickername <name>
-│ • delpath same/inbox
-│ • reactemojis 😍,❤️,🔥
-│ • owneremojis 👑,⭐,💎
-│
-│ 📁 *Current Status*
-│ • Welcome: ${userConfig.WELCOME || 'false'}
-│ • Goodbye: ${userConfig.GOODBYE || 'false'}
-│ • Anti-Link: ${userConfig.ANTI_LINK || 'off'}
-│ • Anti-Delete: ${userConfig.ANTI_DELETE || 'false'}
-│ • Anti-Call: ${userConfig.ANTI_CALL || 'false'}
-│ • Auto-Read: ${userConfig.READ_MESSAGE || 'false'}
-│ • Auto-React: ${userConfig.AUTO_REACT || 'false'}
-│ • Auto-Typing: ${userConfig.AUTO_TYPING || 'false'}
-│ • Always Online: ${userConfig.ALWAYS_ONLINE || 'false'}
-│ • Mode: ${userConfig.MODE || 'public'}
-│ • Prefix: ${userConfig.PREFIX || prefix}
-│
-│ 📌 *Tip:* Use .help <command> for more details
-└──────────────────────────
+    const settingsText = `📁 *GENERAL SETTINGS*
+├─ welcome on/off
+├─ goodbye on/off
+├─ setwelcome <message>
+└─ setgoodbye <message>
+
+📁 *AUTO FEATURES*
+├─ autoread on/off
+├─ autoreact on/off
+├─ autotyping on/off
+├─ statusview on/off
+├─ recording on/off
+└─ online on/off
+
+📁 *REPLY SETTINGS*
+├─ mentionreply on/off ✨
+└─ statuslike on/off
+
+📁 *ANTI FEATURES*
+├─ antistatus on/off/warn/delete
+├─ antilink on/off/warn/delete
+├─ antidelete on/off
+├─ anticall on/off
+└─ anticallmsg <message>
+
+📁 *USER MANAGEMENT*
+├─ sudo @user
+├─ delsudo @user
+└─ listsudo
+
+📁 *BOT CUSTOMIZATION*
+├─ mode public/private/inbox
+├─ prefix <new_prefix>
+├─ botname <name>
+├─ ownername <name>
+├─ ownernumber <number>
+├─ description <text>
+├─ botdp <url> or reply to image
+├─ stickername <name>
+├─ delpath same/inbox
+├─ statusemoji 😍,❤️,🔥
+├─ reactemojis 😍,❤️,🔥
+└─ owneremojis 👑,⭐,💎
+
+▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
+
+💡 *Usage:* .<command> <option>
+📌 *Example:* .mentionreply on
+
+> Powered by ${userConfig.BOT_NAME || config.BOT_NAME} 💜
     `;
     
     await reply(settingsText);

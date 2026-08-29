@@ -157,6 +157,54 @@ cmd({
     }
 });
 
+// ==================== MARIGE COMMAND ====================  <-- PASTE HERE
+cmd({
+  pattern: "marige",
+  alias: ["shadi", "marriage", "wedding"],
+  desc: "Randomly pairs two users for marriage with a wedding GIF",
+  react: "💍",
+  category: "fun",
+  filename: __filename
+}, async (conn, mek, m, { from, sender, isGroup, reply }) => {
+  try {
+    if (!isGroup) return reply("❌ This command can only be used in groups!");
+    
+    const groupMetadata = await conn.groupMetadata(from);
+    if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
+    
+    const participants = groupMetadata.participants.map(user => user.id);
+    const botNumber = conn.user.id;
+    
+    const eligibleParticipants = participants.filter(id => id !== sender && id !== botNumber);
+    
+    if (eligibleParticipants.length < 1) return reply("❌ Not enough participants to perform a marriage!");
+    
+    const randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
+    const randomPair = eligibleParticipants[randomIndex];
+    
+    let gifBuffer = await getNekosGif("hug");
+    let videoBuffer = await gifToVideo(gifBuffer);
+    
+    const message = `💍 *Shadi Mubarak!* 💒\n\n👰 @${sender.split("@")[0]} + 🤵 @${randomPair.split("@")[0]}\n\nMay you both live happily ever after! 💖`;
+    
+    await conn.sendMessage(
+      from, 
+      { 
+        video: videoBuffer, 
+        caption: message, 
+        gifPlayback: true, 
+        mentions: [sender, randomPair] 
+      }, 
+      { quoted: mek }
+    );
+    
+  } catch (error) {
+    console.error("❌ Error in .marige command:", error);
+    reply(`❌ *Error in .marige command:*\n\`\`\`${error.message}\`\`\``);
+  }
+});
+
+
 // ==================== KILL COMMAND ====================
 cmd({
     pattern: "kill",

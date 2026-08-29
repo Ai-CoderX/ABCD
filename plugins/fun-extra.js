@@ -1276,35 +1276,6 @@ cmd({
   }
 });
 
-// ==================== MARIGE COMMAND ====================
-cmd({
-  pattern: "marige",
-  alias: ["shadi", "marriage", "wedding"],
-  desc: "Randomly pairs two users for marriage with a wedding GIF",
-  react: "💍",
-  category: "fun",
-  filename: __filename
-}, async (conn, mek, store, { isGroup, groupMetadata, reply, sender }) => {
-  try {
-    if (!isGroup) return reply("❌ This command can only be used in groups!");
-    const participants = groupMetadata.participants.map(user => user.id);
-    const eligibleParticipants = participants.filter(id => id !== sender && !id.includes(conn.user.id.split('@')[0]));
-    if (eligibleParticipants.length < 1) return reply("❌ Not enough participants to perform a marriage!");
-    const randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
-    const randomPair = eligibleParticipants[randomIndex];
-    const apiUrl = "https://api.waifu.pics/sfw/hug";
-    let res = await axios.get(apiUrl);
-    let gifUrl = res.data.url;
-    let gifBuffer = await fetchGif(gifUrl);
-    let videoBuffer = await gifToVideo(gifBuffer);
-    const message = `💍 *Shadi Mubarak!* 💒\n\n👰 @${sender.split("@")[0]} + 🤵 @${randomPair.split("@")[0]}\n\nMay you both live happily ever after! 💖`;
-    await conn.sendMessage(mek.chat, { video: videoBuffer, caption: message, gifPlayback: true, mentions: [sender, randomPair] }, { quoted: mek });
-  } catch (error) {
-    console.error("❌ Error in .marige command:", error);
-    reply(`❌ *Error in .marige command:*\n\`\`\`${error.message}\`\`\``);
-  }
-});
-
 // ==================== COSPLAY COMMAND ====================
 cmd({
   pattern: "cosplay",
@@ -1358,15 +1329,28 @@ cmd({
   react: "👦",
   category: "fun",
   filename: __filename
-}, async (conn, mek, store, { isGroup, groupMetadata, reply }) => {
+}, async (conn, mek, store, { from, sender, isGroup, reply }) => {
   try {
     if (!isGroup) return reply("❌ This command can only be used in groups!");
+    
+    const groupMetadata = await conn.groupMetadata(from);
     if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
+    
     const botNumber = conn.user.id;
-    const participants = groupMetadata.participants.filter(p => p.id !== botNumber);
+    const participants = groupMetadata.participants
+      .filter(p => p.id !== botNumber && p.id !== sender)
+      .map(p => p.id);
+    
     if (participants.length < 1) return reply("❌ No eligible participants found!");
+    
     const randomUser = participants[Math.floor(Math.random() * participants.length)];
-    await conn.sendMessage(mek.chat, { text: `👦 *Yeh lo tumhara Bacha!*\n\n@${randomUser.id.split('@')[0]} is your handsome boy! 😎`, mentions: [randomUser.id] }, { quoted: mek });
+    const userName = randomUser.split("@")[0];
+    
+    await conn.sendMessage(from, { 
+      text: `👦 *Yeh lo tumhara Bacha!*\n\n@${userName} is your handsome boy! 😎`, 
+      contextInfo: { mentionedJid: [randomUser] }
+    }, { quoted: mek });
+    
   } catch (error) {
     console.error("Error in .bacha command:", error);
     reply("❌ An error occurred while selecting a boy.");
@@ -1381,15 +1365,28 @@ cmd({
   react: "👧",
   category: "fun",
   filename: __filename
-}, async (conn, mek, store, { isGroup, groupMetadata, reply }) => {
+}, async (conn, mek, store, { from, sender, isGroup, reply }) => {
   try {
     if (!isGroup) return reply("❌ This command can only be used in groups!");
+    
+    const groupMetadata = await conn.groupMetadata(from);
     if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
+    
     const botNumber = conn.user.id;
-    const participants = groupMetadata.participants.filter(p => p.id !== botNumber);
+    const participants = groupMetadata.participants
+      .filter(p => p.id !== botNumber && p.id !== sender)
+      .map(p => p.id);
+    
     if (participants.length < 1) return reply("❌ No eligible participants found!");
+    
     const randomUser = participants[Math.floor(Math.random() * participants.length)];
-    await conn.sendMessage(mek.chat, { text: `👧 *Yeh lo tumhari Bachi!*\n\n@${randomUser.id.split('@')[0]} is your beautiful girl! 💖`, mentions: [randomUser.id] }, { quoted: mek });
+    const userName = randomUser.split("@")[0];
+    
+    await conn.sendMessage(from, { 
+      text: `👧 *Yeh lo tumhari Bachi!*\n\n@${userName} is your beautiful girl! 💖`, 
+      contextInfo: { mentionedJid: [randomUser] }
+    }, { quoted: mek });
+    
   } catch (error) {
     console.error("Error in .bachi command:", error);
     reply("❌ An error occurred while selecting a girl.");
@@ -1557,9 +1554,31 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, reply }) => {
     try {
-        const { data } = await axios.get('https://apis.davidcyriltech.my.id/pickupline');
-        if (!data.success) return reply("❌ Failed to get a pickup line. Try again!");
-        await reply(`💝 *Pickup Line* 💝\n\n"${data.pickupline}"\n\n_Use wisely!_`);
+        const pickupLines = [
+            "Are you a magician? Because whenever I look at you, everyone else disappears.",
+            "Do you have a map? I just keep getting lost in your eyes.",
+            "Is your name Google? Because you have everything I've been searching for.",
+            "Are you Wi-Fi? Because I'm feeling a really strong connection.",
+            "Do you believe in love at first sight, or should I walk by again?",
+            "If you were a vegetable, you'd be a cute-cumber.",
+            "Is it hot in here, or is it just you?",
+            "Do you have a band-aid? Because I scraped my knee falling for you.",
+            "Are you a camera? Because every time I look at you, I smile.",
+            "If beauty were time, you'd be an eternity.",
+            "Are you a parking ticket? Because you've got FINE written all over you.",
+            "Do you like Star Wars? Because Yoda one for me!",
+            "Is your dad an alien? Because there's nothing else like you on Earth.",
+            "If I could rearrange the alphabet, I'd put 'U' and 'I' together.",
+            "Are you a time traveler? Because I see you in my future.",
+            "Do you have a sun tan, or are you always this glowing?",
+            "Are you made of copper and tellurium? Because you're Cu-Te.",
+            "I must be a snowflake, because I've fallen for you.",
+            "Is there an airport nearby, or is that just my heart taking off?",
+            "If you were a transformer, you'd be Optimus Fine."
+        ];
+
+        const randomLine = pickupLines[Math.floor(Math.random() * pickupLines.length)];
+        await reply(`💝 *Pickup Line* 💝\n\n"${randomLine}"\n\n_Use wisely!_`);
     } catch (error) {
         console.error('Pickup Error:', error);
         reply("❌ My charm isn't working right now. Try again later!");

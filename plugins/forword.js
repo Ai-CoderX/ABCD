@@ -169,28 +169,27 @@ cmd({
     desc: "msg text messages multiple times",
     category: "owner",
     filename: __filename
-}, async (client, message, match, { isCreator, reply, from }) => {
+}, async (client, message, match, { isCreator, reply, from, q }) => {
     try {
         if (!isCreator) return await reply("*📛 Owner Only Command*");
         
-        // Convert match to string if it's not already
-        const matchStr = typeof match === 'string' ? match : match?.toString() || '';
+        // Use q parameter like tagall does
+        let args = q || '';
         
-        if (!matchStr) {
+        if (!args) {
             return await reply("*Usage:* `.msg Your text , count`\n*Max count:* 50");
         }
 
         // Parse: text , count
-        let text = matchStr;
+        let text = args;
         let count = 1;
         
-        const commaIndex = matchStr.indexOf(',');
+        const commaIndex = args.indexOf(',');
         if (commaIndex !== -1) {
-            text = matchStr.substring(0, commaIndex).trim();
-            const countStr = matchStr.substring(commaIndex + 1).trim();
+            text = args.substring(0, commaIndex).trim();
+            const countStr = args.substring(commaIndex + 1).trim();
             const parsedCount = parseInt(countStr);
             if (!isNaN(parsedCount) && parsedCount > 0) {
-                // Check if count is over 50
                 if (parsedCount > 50) {
                     return await reply("❌ *Count exceeds limit!*\nPlease choose a number under 50.\nExample: `.msg Hello , 20`");
                 }

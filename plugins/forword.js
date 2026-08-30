@@ -165,7 +165,7 @@ cmd({
 
 cmd({
     pattern: "msg",
-    alias: ["repeat", "spam"],
+    alias: ["repeat"],
     desc: "msg text messages multiple times",
     category: "owner",
     filename: __filename

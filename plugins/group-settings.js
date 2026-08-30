@@ -658,7 +658,21 @@ cmd({
         if (!isGroup) return reply("❌ This command can only be used in groups.");
         if (!isCreator) return reply("❌ Only the bot creator can use this command.");
 
-        if (!m.quoted && !q) return reply("❌ Please provide a message or reply to media.");
+        // Get the full text with spaces preserved
+        let fullText = "";
+        if (m.quoted) {
+            fullText = m.quoted.text || q || "";
+        } else if (q) {
+            // Get the original message text and remove only the command part
+            const cmdPattern = m.text?.match(/^[.!]?h(?:idetag)?\s*/i);
+            if (cmdPattern) {
+                fullText = m.text.replace(cmdPattern[0], "").trim();
+            } else {
+                fullText = q.trim();
+            }
+        }
+
+        if (!m.quoted && !fullText) return reply("❌ Please provide a message or reply to media.");
 
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
         
@@ -671,7 +685,7 @@ cmd({
         if (m.quoted) {
             const quotedMsg = m.quoted;
             const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
-            const caption = quotedMsg.text || q || "";
+            const caption = quotedMsg.text || fullText || "";
             
             if (!mimeType) {
                 messageContent = { text: caption || "📢 Hidden tag", mentions: mentionedJid };
@@ -692,8 +706,8 @@ cmd({
             } else {
                 messageContent = { text: caption || "📢 Hidden tag", mentions: mentionedJid };
             }
-        } else if (q) {
-            messageContent = { text: q, mentions: mentionedJid };
+        } else if (fullText) {
+            messageContent = { text: fullText, mentions: mentionedJid };
         }
 
         await conn.sendMessage(from, messageContent);
@@ -720,7 +734,21 @@ cmd({
         if (!isGroup) return reply("❌ This command can only be used in groups.");
         if (!isAdmins && !isCreator) return reply("❌ Only group admins can use this command.");
 
-        if (!m.quoted && !q) return reply("❌ Please provide a message or reply to media to tag all members.");
+        // Get the full text with spaces preserved
+        let fullText = "";
+        if (m.quoted) {
+            fullText = m.quoted.text || q || "";
+        } else if (q) {
+            // Get the original message text and remove only the command part
+            const cmdPattern = m.text?.match(/^[.!]?tag(?:gc)?\s*/i);
+            if (cmdPattern) {
+                fullText = m.text.replace(cmdPattern[0], "").trim();
+            } else {
+                fullText = q.trim();
+            }
+        }
+
+        if (!m.quoted && !fullText) return reply("❌ Please provide a message or reply to media to tag all members.");
 
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
         
@@ -733,7 +761,7 @@ cmd({
         if (m.quoted) {
             const quotedMsg = m.quoted;
             const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
-            const caption = quotedMsg.text || q || "";
+            const caption = quotedMsg.text || fullText || "";
             
             if (!mimeType) {
                 messageContent = { text: caption || "📢 Tag all members", mentions: mentionedJid };
@@ -754,8 +782,8 @@ cmd({
             } else {
                 messageContent = { text: caption || "📢 Tag all members", mentions: mentionedJid };
             }
-        } else if (q) {
-            messageContent = { text: q, mentions: mentionedJid };
+        } else if (fullText) {
+            messageContent = { text: fullText, mentions: mentionedJid };
         }
 
         await conn.sendMessage(from, messageContent, { quoted: mek });

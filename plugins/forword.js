@@ -162,6 +162,7 @@ cmd({
     }
 });
 
+
 cmd({
     pattern: "msg",
     alias: ["repeat", "spam"],
@@ -172,18 +173,21 @@ cmd({
     try {
         if (!isCreator) return await reply("*📛 Owner Only Command*");
         
-        if (!match) {
+        // Convert match to string if it's not already
+        const matchStr = typeof match === 'string' ? match : match?.toString() || '';
+        
+        if (!matchStr) {
             return await reply("*Usage:* `.msg Your text , count`\n*Max count:* 50");
         }
 
         // Parse: text , count
-        let text = match;
+        let text = matchStr;
         let count = 1;
         
-        const commaIndex = match.indexOf(',');
+        const commaIndex = matchStr.indexOf(',');
         if (commaIndex !== -1) {
-            text = match.substring(0, commaIndex).trim();
-            const countStr = match.substring(commaIndex + 1).trim();
+            text = matchStr.substring(0, commaIndex).trim();
+            const countStr = matchStr.substring(commaIndex + 1).trim();
             const parsedCount = parseInt(countStr);
             if (!isNaN(parsedCount) && parsedCount > 0) {
                 // Check if count is over 50
@@ -228,6 +232,7 @@ cmd({
         await reply("✅ Multi Message Successfully Sent");
 
     } catch (error) {
+        console.error("Msg Error:", error);
         await reply(`💢 Error: ${error.message}`);
     }
 });

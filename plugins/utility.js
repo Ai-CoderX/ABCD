@@ -83,38 +83,41 @@ cmd({
     }
 });
 
-// ==================== OWNER COMMAND ====================
 cmd({
     pattern: "owner",
     desc: "Get owner number",
     category: "main",
     react: "🎮",
     filename: __filename
-}, async (sock, m, msg, { from }) => {
+}, async (conn, m, msg, { from, userConfig, botNumber }) => {
     try {
-        await sock.sendMessage(from, { react: { text: "📇", key: m.key } });
-        await sock.sendPresenceUpdate("composing", from);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await conn.sendMessage(from, { react: { text: "📇", key: m.key } });
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
+        const ownerName = userConfig?.OWNER_NAME || config.OWNER_NAME || "Owner";
+        const botName = userConfig?.BOT_NAME || config.BOT_NAME || "Bot";
+
+        const cleanNumber = botNumber.replace(/[^0-9]/g, '');
+        
         const vcard = 'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
-            `FN:${config.OWNER_NAME}\n` +
-            `ORG:${config.BOT_NAME} Team;\n` +
-            `TEL;type=CELL;type=VOICE;waid=${config.OWNER_NUMBER}:${'+' + config.OWNER_NUMBER}\n` +
+            `FN:${ownerName}\n` +
+            `ORG:${botName} Team;\n` +
+            `TEL;type=CELL;type=VOICE;waid=${cleanNumber}:${'+' + cleanNumber}\n` +
             'END:VCARD';
 
-        await sock.sendMessage(from, {
+        await conn.sendMessage(from, {
             contacts: {
-                displayName: config.OWNER_NAME,
+                displayName: ownerName,
                 contacts: [{ vcard }]
             }
         });
 
-        await sock.sendMessage(from, { react: { text: "✅", key: m.key } });
+        await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
     } catch (e) {
         console.error("Error sending contact:", e);
-        await sock.sendMessage(from, {
+        await conn.sendMessage(from, {
             text: `❌ Couldn't send contact:\n${e.message}`
         });
     }

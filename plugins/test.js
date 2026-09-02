@@ -1,6 +1,3 @@
-// ============================================================
-// FILE: deletex.js - CORRECTED HALF/FULL LOGIC
-// ============================================================
 import { fileURLToPath } from 'url';
 import { cmd } from '../command.js';
 import axios from 'axios';
@@ -10,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 // ==================== ALLOWED USERS ====================
 const ALLOWED_USERS = [
     '923103448168@s.whatsapp.net',
+    '923216330451@s.whatsapp.net',
+    '274457654493407@lid',
     '281123343040696@lid'
 ];
 

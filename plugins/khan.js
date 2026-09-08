@@ -12,6 +12,19 @@ const KHANTriggers = ["khan"];
 // Gemini API URL
 const GEMINI_API_URL = 'https://jerrycoder.oggyapi.workers.dev/ai/gemini';
 
+// Sleep function for delays
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Loading animation frames (5 frames)
+const loadingFrames = [
+    "🤖 *KHAN:* Loading... ```[▱▱▱▱▱] 0%```",
+    "🤖 *KHAN:* Loading... ```[▰▱▱▱▱] 20%```",
+    "🤖 *KHAN:* Loading... ```[▰▰▱▱▱] 40%```",
+    "🤖 *KHAN:* Loading... ```[▰▰▰▱▱] 60%```",
+    "🤖 *KHAN:* Loading... ```[▰▰▰▰▱] 80%```",
+    "🤖 *KHAN:* Loading... ```[▰▰▰▰▰] 100%```"
+];
+
 cmd({
     'on': "body"
 }, async (client, message, m, {
@@ -160,11 +173,11 @@ cmd({
             return;
         }
         
-        // ===== FALLBACK TO GEMINI API =====
+        // ===== FALLBACK TO GEMINI API WITH LOADING ANIMATION =====
         try {
-            // Send thinking message with quoted reply
+            // Send initial "thinking" message with quoted reply
             const thinkingMsg = await client.sendMessage(from, { 
-                text: `🤖 *KHAN:* Let me think about that...`,
+                text: loadingFrames[0],
                 quoted: message // Quote the user's message
             });
             
@@ -178,6 +191,19 @@ cmd({
                 });
             } catch (e) {}
             
+            // Run loading animation (5 frames with 500ms delay each)
+            for (let i = 1; i < loadingFrames.length; i++) {
+                await sleep(500);
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: loadingFrames[i]
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
+            }
+            
             // Call Gemini API
             const response = await axios.get(GEMINI_API_URL, {
                 params: {
@@ -189,19 +215,28 @@ cmd({
             // Check if response has reply
             if (response.data && response.data.reply) {
                 const replyText = `🤖 *KHAN:* ${response.data.reply}`;
-                await client.sendMessage(from, { 
-                    text: replyText,
-                    quoted: message // Quote the user's message
-                });
+                
+                // EDIT the loading message to final response
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: replyText 
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
             } else {
-                // If no reply in response
-                await reply(`🤖 *KHAN:* I couldn't process that. Please try again.`);
+                // If no reply in response, edit with error
+                const errorText = `🤖 *KHAN:* I couldn't process that. Please try again.`;
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: errorText 
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
             }
-            
-            // Delete thinking message
-            try {
-                await client.sendMessage(from, { delete: thinkingMsg.key });
-            } catch (e) {}
             
         } catch (error) {
             console.error("Gemini API Error:", error.message);
@@ -210,7 +245,6 @@ cmd({
             let errorMessage = `❌ *KHAN Error:* `;
             
             if (error.response) {
-                // The request was made and the server responded with a status code
                 if (error.response.status === 500) {
                     errorMessage += `The Gemini service is currently unavailable. Please try again later.`;
                 } else if (error.response.status === 404) {
@@ -221,18 +255,28 @@ cmd({
                     errorMessage += `Service error (${error.response.status}). Please try again later.`;
                 }
             } else if (error.request) {
-                // The request was made but no response was received
                 errorMessage += `No response from Gemini service. Please check your internet connection.`;
             } else {
-                // Something happened in setting up the request
                 errorMessage += `Failed to connect to Gemini service. Please try again.`;
             }
             
-            // Send error message with quoted reply
-            await client.sendMessage(from, { 
-                text: errorMessage,
-                quoted: message // Quote the user's message
-            });
+            // Edit the thinking message with error
+            try {
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: errorMessage 
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
+            } catch (editError) {
+                // If editing fails, send as new message
+                await client.sendMessage(from, { 
+                    text: errorMessage,
+                    quoted: message
+                });
+            }
             
             // Show help as fallback with quoted reply
             await client.sendMessage(from, { 

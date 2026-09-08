@@ -1,12 +1,12 @@
-// plugins/jarvis.js - ESM Version
+// plugins/KHAN.js - ESM Version
 import { fileURLToPath } from 'url';
 import { cmd, commands } from '../command.js';
 import config from '../config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// Keywords that trigger Jarvis (all case variations supported)
-const jarvisTriggers = ["jarvis", "jawad"];
+// Keyword that triggers KHAN (all case variations supported)
+const KHANTriggers = ["khan"];
 
 cmd({
     'on': "body"
@@ -23,21 +23,18 @@ cmd({
     text
 }) => {
     try {
-        // Only allow the bot owner/creator
-        if (!isCreator) {
-            return;
-        }
+        // Remove owner-only restriction - Allow in any chat
 
         // Keep original body for message sending, use lowercase for checking
         const originalBody = body.trim();
         const lowerBody = originalBody.toLowerCase();
         
-        // Check if message starts with any Jarvis trigger (case insensitive)
+        // Check if message starts with "KHAN" (case insensitive)
         let cleanMsg = null;
         let matchedTrigger = null;
         let matchedText = null;
         
-        for (const trigger of jarvisTriggers) {
+        for (const trigger of KHANTriggers) {
             // Check if lowerBody starts with trigger
             if (lowerBody.startsWith(trigger)) {
                 matchedTrigger = trigger;
@@ -49,7 +46,7 @@ cmd({
             }
         }
         
-        // If no Jarvis trigger found at start, return
+        // If no KHAN trigger found at start, return
         if (!matchedTrigger) {
             return;
         }
@@ -57,16 +54,16 @@ cmd({
         // Get PREFIX
         const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";
         
-        // If just "jarvis" with no command, show menu
+        // If just "KHAN" with no command, show menu
         if (!cleanMsg) {
-            const menuText = `🤖 *Jarvis:* Ok boss! I'm ready!
+            const menuText = `🤖 *KHAN:* Ok boss! I'm ready!
 
 📋 *Try these commands:*
 • ${matchedText} menu - Show all commands
 • ${matchedText} play <song> - Play music
 • ${matchedText} ping - Check response
 • ${matchedText} status - Bot status
-• ${matchedText} ai <query> - AI chat
+• ${matchedText} gpt <query> - ChatGPT assistant
 
 💡 *Or just talk to me naturally!*`;
 
@@ -93,7 +90,7 @@ cmd({
             const aliases = Array.isArray(cmd.alias) ? cmd.alias : (cmd.alias ? [cmd.alias] : []);
             const allNames = [...patterns, ...aliases].filter(Boolean);
             
-            // Check if any name matches the first word (case insensitive)
+            // Check if any name matches the FIRST WORD exactly
             for (const name of allNames) {
                 if (words[0] === name.toLowerCase()) {
                     foundCommand = cmd;
@@ -105,32 +102,11 @@ cmd({
             if (foundCommand) break;
         }
         
-        // If no command found by first word, check if any command name appears in the message
-        if (!foundCommand) {
-            for (const cmd of commands) {
-                const patterns = Array.isArray(cmd.pattern) ? cmd.pattern : [cmd.pattern];
-                const aliases = Array.isArray(cmd.alias) ? cmd.alias : (cmd.alias ? [cmd.alias] : []);
-                const allNames = [...patterns, ...aliases].filter(Boolean);
-                
-                for (const name of allNames) {
-                    if (cleanMsg.toLowerCase().includes(name.toLowerCase())) {
-                        foundCommand = cmd;
-                        commandPattern = name;
-                        // Extract everything after the command name
-                        const parts = cleanMsg.split(new RegExp(name, 'i'));
-                        foundArgs = parts.length > 1 ? parts[1].trim().split(/\s+/) : [];
-                        break;
-                    }
-                }
-                if (foundCommand) break;
-            }
-        }
-        
         // If command found, execute it
         if (foundCommand && commandPattern) {
             // Send "Ok boss" message
             const okMsg = await client.sendMessage(from, { 
-                text: `🤖 *Jarvis:* Ok boss! Processing "${commandPattern}"...` 
+                text: `🤖 *KHAN:* Ok boss! Processing "${commandPattern}"...` 
             });
             
             // React with 🤖
@@ -151,7 +127,7 @@ cmd({
                 reply,
                 sender,
                 userConfig,
-                isCreator,
+                isCreator: false,
                 isGroup,
                 args: foundArgs,
                 q: foundArgs.join(' '),
@@ -170,17 +146,19 @@ cmd({
             return;
         }
         
-        // If no command found, try to use AI/chat command
-        const chatCommand = commands.find(c => 
-            c.pattern === 'ai' || c.pattern === 'chat' || c.pattern === 'gpt' ||
-            (Array.isArray(c.pattern) && c.pattern.includes('ai')) ||
-            (Array.isArray(c.pattern) && c.pattern.includes('chat'))
+        // ===== FALLBACK TO GPT COMMAND =====
+        // Find GPT command (not AI)
+        const gptCommand = commands.find(c => 
+            c.pattern === 'gpt' || c.pattern === 'chatgpt' || c.pattern === 'openai' ||
+            (Array.isArray(c.pattern) && c.pattern.includes('gpt')) ||
+            (Array.isArray(c.pattern) && c.pattern.includes('chatgpt')) ||
+            (c.alias && (Array.isArray(c.alias) ? c.alias.includes('gpt') : c.alias === 'gpt'))
         );
         
-        if (chatCommand) {
+        if (gptCommand) {
             // Send processing message
             await client.sendMessage(from, { 
-                text: `🤖 *Jarvis:* Let me think about that...` 
+                text: `🤖 *KHAN:* Let me think about that...` 
             });
             
             const context = {
@@ -188,34 +166,58 @@ cmd({
                 reply,
                 sender,
                 userConfig,
-                isCreator,
+                isCreator: false,
                 isGroup,
                 args: [cleanMsg],
                 q: cleanMsg,
                 text: cleanMsg,
                 isCmd: true,
-                command: chatCommand.pattern
+                command: gptCommand.pattern || 'gpt'
             };
             
-            await chatCommand.function(client, message, m, context);
+            await gptCommand.function(client, message, m, context);
         } else {
-            // Default response if no AI command found
-            await reply(`🤖 *Jarvis:* I didn't understand "${cleanMsg}"
+            // If no GPT command found, try AI as last resort
+            const aiCommand = commands.find(c => 
+                c.pattern === 'ai' || c.pattern === 'chat' ||
+                (Array.isArray(c.pattern) && c.pattern.includes('ai'))
+            );
+            
+            if (aiCommand) {
+                const context = {
+                    from,
+                    reply,
+                    sender,
+                    userConfig,
+                    isCreator: false,
+                    isGroup,
+                    args: [cleanMsg],
+                    q: cleanMsg,
+                    text: cleanMsg,
+                    isCmd: true,
+                    command: aiCommand.pattern || 'ai'
+                };
+                
+                await aiCommand.function(client, message, m, context);
+            } else {
+                // Default response if no GPT or AI command found
+                await reply(`🤖 *KHAN:* I didn't understand "${cleanMsg}"
 
 📋 *Try these:*
 • ${matchedText} menu
 • ${matchedText} play <song>
 • ${matchedText} ping
 • ${matchedText} status
-• ${matchedText} ai <your question>
+• ${matchedText} gpt <your question>
 
 💡 *Just say "${matchedText}" to see all options*`);
+            }
         }
         
     } catch (error) {
-        console.error("Jarvis Plugin Error:", error);
+        console.error("KHAN Plugin Error:", error);
         try {
-            await reply(`❌ Jarvis Error: ${error.message}`);
+            await reply(`❌ KHAN Error: ${error.message}`);
         } catch (e) {}
     }
 });

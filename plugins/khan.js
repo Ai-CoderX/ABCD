@@ -12,19 +12,6 @@ const KHANTriggers = ["khan"];
 // Gemini API URL
 const GEMINI_API_URL = 'https://jerrycoder.oggyapi.workers.dev/ai/gemini';
 
-// Sleep function for delays
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Loading animation frames (5 frames)
-const loadingFrames = [
-    "🤖 *KHAN:* Loading... ```[▱▱▱▱▱] 0%```",
-    "🤖 *KHAN:* Loading... ```[▰▱▱▱▱] 20%```",
-    "🤖 *KHAN:* Loading... ```[▰▰▱▱▱] 40%```",
-    "🤖 *KHAN:* Loading... ```[▰▰▰▱▱] 60%```",
-    "🤖 *KHAN:* Loading... ```[▰▰▰▰▱] 80%```",
-    "🤖 *KHAN:* Loading... ```[▰▰▰▰▰] 100%```"
-];
-
 cmd({
     'on': "body"
 }, async (client, message, m, {
@@ -92,7 +79,7 @@ cmd({
 
             await client.sendMessage(from, { 
                 text: introText,
-                quoted: message // Quote the user's message
+                quoted: message
             });
             
             // React with 🤖
@@ -133,7 +120,7 @@ cmd({
             // Send "Ok boss" message with quoted reply
             const okMsg = await client.sendMessage(from, { 
                 text: `🤖 *KHAN:* Ok boss! Processing "${commandPattern}"...`,
-                quoted: message // Quote the user's message
+                quoted: message
             });
             
             // React with 🤖
@@ -173,12 +160,12 @@ cmd({
             return;
         }
         
-        // ===== FALLBACK TO GEMINI API WITH LOADING ANIMATION =====
+        // ===== FALLBACK TO GEMINI API =====
         try {
-            // Send initial "thinking" message with quoted reply
+            // Send thinking message with quoted reply
             const thinkingMsg = await client.sendMessage(from, { 
-                text: loadingFrames[0],
-                quoted: message // Quote the user's message
+                text: `🤖 *KHAN:* Let me think about that...`,
+                quoted: message
             });
             
             // React to thinking message
@@ -191,32 +178,28 @@ cmd({
                 });
             } catch (e) {}
             
-            // Run loading animation (5 frames with 500ms delay each)
-            for (let i = 1; i < loadingFrames.length; i++) {
-                await sleep(500);
-                const protocolMsg = {
-                    key: thinkingMsg.key,
-                    type: 0xe,
-                    editedMessage: { 
-                        conversation: loadingFrames[i]
-                    }
-                };
-                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
-            }
+            // FIX: Properly encode the prompt parameter
+            const encodedPrompt = encodeURIComponent(cleanMsg);
+            const apiUrl = `${GEMINI_API_URL}?prompt=${encodedPrompt}`;
             
-            // Call Gemini API
-            const response = await axios.get(GEMINI_API_URL, {
-                params: {
-                    prompt: cleanMsg
+            console.log(`📡 Calling Gemini API: ${apiUrl}`);
+            
+            // Call Gemini API with proper headers
+            const response = await axios.get(apiUrl, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 timeout: 30000 // 30 second timeout
             });
+            
+            console.log(`✅ Gemini API Response:`, response.data);
             
             // Check if response has reply
             if (response.data && response.data.reply) {
                 const replyText = `🤖 *KHAN:* ${response.data.reply}`;
                 
-                // EDIT the loading message to final response
+                // Edit the thinking message with the response
                 const protocolMsg = {
                     key: thinkingMsg.key,
                     type: 0xe,
@@ -240,6 +223,10 @@ cmd({
             
         } catch (error) {
             console.error("Gemini API Error:", error.message);
+            if (error.response) {
+                console.error("Response status:", error.response.status);
+                console.error("Response data:", error.response.data);
+            }
             
             // Handle API errors
             let errorMessage = `❌ *KHAN Error:* `;
@@ -260,23 +247,11 @@ cmd({
                 errorMessage += `Failed to connect to Gemini service. Please try again.`;
             }
             
-            // Edit the thinking message with error
-            try {
-                const protocolMsg = {
-                    key: thinkingMsg.key,
-                    type: 0xe,
-                    editedMessage: { 
-                        conversation: errorMessage 
-                    }
-                };
-                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
-            } catch (editError) {
-                // If editing fails, send as new message
-                await client.sendMessage(from, { 
-                    text: errorMessage,
-                    quoted: message
-                });
-            }
+            // Send error message with quoted reply
+            await client.sendMessage(from, { 
+                text: errorMessage,
+                quoted: message
+            });
             
             // Show help as fallback with quoted reply
             await client.sendMessage(from, { 

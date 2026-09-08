@@ -1,12 +1,16 @@
-// plugins/KHAN.js - ESM Version
+// plugins/khan.js - ESM Version
 import { fileURLToPath } from 'url';
 import { cmd, commands } from '../command.js';
 import config from '../config.js';
+import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 
 // Keyword that triggers KHAN (all case variations supported)
 const KHANTriggers = ["khan"];
+
+// Gemini API URL
+const GEMINI_API_URL = 'https://jerrycoder.oggyapi.workers.dev/ai/gemini';
 
 cmd({
     'on': "body"
@@ -54,20 +58,29 @@ cmd({
         // Get PREFIX
         const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";
         
-        // If just "KHAN" with no command, show menu
+        // If just "KHAN" with no command, show intro with AI assistant message
         if (!cleanMsg) {
-            const menuText = `🤖 *KHAN:* Ok boss! I'm ready!
+            const introText = `🤖 *KHAN:* Hey! I'm KHAN - Your AI Assistant!
+
+*About Me:*
+• 🤖 Powered by advanced AI
+• 💡 Here to help you 24/7
+• 🎯 Fast & accurate responses
+• 🔐 Secure & private
 
 📋 *Try these commands:*
 • ${matchedText} menu - Show all commands
 • ${matchedText} play <song> - Play music
 • ${matchedText} ping - Check response
 • ${matchedText} status - Bot status
-• ${matchedText} gpt <query> - ChatGPT assistant
+• ${matchedText} <question> - Ask me anything!
 
-💡 *Or just talk to me naturally!*`;
+💡 *Just type "${matchedText} <your question>" and I'll help!*`;
 
-            await client.sendMessage(from, { text: menuText });
+            await client.sendMessage(from, { 
+                text: introText,
+                quoted: message // Quote the user's message
+            });
             
             // React with 🤖
             try {
@@ -104,9 +117,10 @@ cmd({
         
         // If command found, execute it
         if (foundCommand && commandPattern) {
-            // Send "Ok boss" message
+            // Send "Ok boss" message with quoted reply
             const okMsg = await client.sendMessage(from, { 
-                text: `🤖 *KHAN:* Ok boss! Processing "${commandPattern}"...` 
+                text: `🤖 *KHAN:* Ok boss! Processing "${commandPattern}"...`,
+                quoted: message // Quote the user's message
             });
             
             // React with 🤖
@@ -146,78 +160,98 @@ cmd({
             return;
         }
         
-        // ===== FALLBACK TO GPT COMMAND =====
-        // Find GPT command (not AI)
-        const gptCommand = commands.find(c => 
-            c.pattern === 'gpt' || c.pattern === 'chatgpt' || c.pattern === 'openai' ||
-            (Array.isArray(c.pattern) && c.pattern.includes('gpt')) ||
-            (Array.isArray(c.pattern) && c.pattern.includes('chatgpt')) ||
-            (c.alias && (Array.isArray(c.alias) ? c.alias.includes('gpt') : c.alias === 'gpt'))
-        );
-        
-        if (gptCommand) {
-            // Send processing message
-            await client.sendMessage(from, { 
-                text: `🤖 *KHAN:* Let me think about that...` 
+        // ===== FALLBACK TO GEMINI API =====
+        try {
+            // Send thinking message with quoted reply
+            const thinkingMsg = await client.sendMessage(from, { 
+                text: `🤖 *KHAN:* Let me think about that...`,
+                quoted: message // Quote the user's message
             });
             
-            const context = {
-                from,
-                reply,
-                sender,
-                userConfig,
-                isCreator: false,
-                isGroup,
-                args: [cleanMsg],
-                q: cleanMsg,
-                text: cleanMsg,
-                isCmd: true,
-                command: gptCommand.pattern || 'gpt'
-            };
+            // React to thinking message
+            try {
+                await client.sendMessage(from, {
+                    react: {
+                        text: '🧠',
+                        key: thinkingMsg.key
+                    }
+                });
+            } catch (e) {}
             
-            await gptCommand.function(client, message, m, context);
-        } else {
-            // If no GPT command found, try AI as last resort
-            const aiCommand = commands.find(c => 
-                c.pattern === 'ai' || c.pattern === 'chat' ||
-                (Array.isArray(c.pattern) && c.pattern.includes('ai'))
-            );
+            // Call Gemini API
+            const response = await axios.get(GEMINI_API_URL, {
+                params: {
+                    prompt: cleanMsg
+                },
+                timeout: 30000 // 30 second timeout
+            });
             
-            if (aiCommand) {
-                const context = {
-                    from,
-                    reply,
-                    sender,
-                    userConfig,
-                    isCreator: false,
-                    isGroup,
-                    args: [cleanMsg],
-                    q: cleanMsg,
-                    text: cleanMsg,
-                    isCmd: true,
-                    command: aiCommand.pattern || 'ai'
-                };
-                
-                await aiCommand.function(client, message, m, context);
+            // Check if response has reply
+            if (response.data && response.data.reply) {
+                const replyText = `🤖 *KHAN:* ${response.data.reply}`;
+                await client.sendMessage(from, { 
+                    text: replyText,
+                    quoted: message // Quote the user's message
+                });
             } else {
-                // Default response if no GPT or AI command found
-                await reply(`🤖 *KHAN:* I didn't understand "${cleanMsg}"
-
-📋 *Try these:*
-• ${matchedText} menu
-• ${matchedText} play <song>
-• ${matchedText} ping
-• ${matchedText} status
-• ${matchedText} gpt <your question>
-
-💡 *Just say "${matchedText}" to see all options*`);
+                // If no reply in response
+                await reply(`🤖 *KHAN:* I couldn't process that. Please try again.`);
             }
+            
+            // Delete thinking message
+            try {
+                await client.sendMessage(from, { delete: thinkingMsg.key });
+            } catch (e) {}
+            
+        } catch (error) {
+            console.error("Gemini API Error:", error.message);
+            
+            // Handle API errors
+            let errorMessage = `❌ *KHAN Error:* `;
+            
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                if (error.response.status === 500) {
+                    errorMessage += `The Gemini service is currently unavailable. Please try again later.`;
+                } else if (error.response.status === 404) {
+                    errorMessage += `The Gemini service could not be found.`;
+                } else if (error.response.status === 429) {
+                    errorMessage += `Too many requests. Please wait a moment and try again.`;
+                } else {
+                    errorMessage += `Service error (${error.response.status}). Please try again later.`;
+                }
+            } else if (error.request) {
+                // The request was made but no response was received
+                errorMessage += `No response from Gemini service. Please check your internet connection.`;
+            } else {
+                // Something happened in setting up the request
+                errorMessage += `Failed to connect to Gemini service. Please try again.`;
+            }
+            
+            // Send error message with quoted reply
+            await client.sendMessage(from, { 
+                text: errorMessage,
+                quoted: message // Quote the user's message
+            });
+            
+            // Show help as fallback with quoted reply
+            await client.sendMessage(from, { 
+                text: `🤖 *KHAN:* Try these instead:
+• ${matchedText} menu - Show all commands
+• ${matchedText} play <song> - Play music
+• ${matchedText} ping - Check response
+• ${matchedText} status - Bot status`,
+                quoted: message
+            });
         }
         
     } catch (error) {
         console.error("KHAN Plugin Error:", error);
         try {
-            await reply(`❌ KHAN Error: ${error.message}`);
+            await client.sendMessage(from, { 
+                text: `❌ KHAN Error: ${error.message}`,
+                quoted: message
+            });
         } catch (e) {}
     }
 });

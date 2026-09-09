@@ -7,7 +7,7 @@ import axios from 'axios';
 const __filename = fileURLToPath(import.meta.url);
 
 // Keywords that trigger KHAN (all case variations supported)
-const KHANTriggers = ["khan", "jarvis"];
+const KHANTriggers = ["khani", "jarvis"];
 
 // API endpoints - SIMPLE GET REQUESTS (NO HEADERS)
 const POLLINATIONS_API = 'https://text.pollinations.ai';

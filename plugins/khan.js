@@ -6,12 +6,11 @@ import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// Keywords that trigger KHAN (all case variations supported)
-const KHANTriggers = ["khani", "jarvis"];
+// Keyword that triggers KHAN (all case variations supported)
+const KHANTriggers = ["khan"];
 
-// API endpoints - SIMPLE GET REQUESTS (NO HEADERS)
+// Pollinations.ai API URL (WORKING)
 const POLLINATIONS_API = 'https://text.pollinations.ai';
-const GEMINI_API = 'https://jerrycoder.oggyapi.workers.dev/ai/gemini';
 
 cmd({
     'on': "body"
@@ -32,7 +31,7 @@ cmd({
         const originalBody = body.trim();
         const lowerBody = originalBody.toLowerCase();
         
-        // Check if message starts with any trigger (case insensitive)
+        // Check if message starts with "KHAN" (case insensitive)
         let cleanMsg = null;
         let matchedTrigger = null;
         let matchedText = null;
@@ -53,7 +52,7 @@ cmd({
         
         const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";
         
-        // If just trigger with no command, show intro
+        // If just "KHAN" with no command, show intro
         if (!cleanMsg) {
             const introText = `🤖 *KHAN:* Hey! I'm KHAN - Your AI Assistant!
 
@@ -92,7 +91,6 @@ cmd({
         let matchedCommandName = null;
         
         // FIRST PASS: Check for exact command names anywhere in the text
-        // Sort commands by pattern length (longest first) to avoid partial matches
         const sortedCommands = [...commands].sort((a, b) => {
             const aPatterns = Array.isArray(a.pattern) ? a.pattern : [a.pattern];
             const bPatterns = Array.isArray(b.pattern) ? b.pattern : [b.pattern];
@@ -106,10 +104,8 @@ cmd({
             const aliases = Array.isArray(cmd.alias) ? cmd.alias : (cmd.alias ? [cmd.alias] : []);
             const allNames = [...patterns, ...aliases].filter(Boolean);
             
-            // Check if any command name exists in the text
             for (const name of allNames) {
                 const nameLower = name.toLowerCase();
-                // Skip if command name is too short (like 'ai' might match 'again')
                 if (nameLower.length < 2) continue;
                 
                 // Check if the command name appears as a whole word in the text
@@ -156,7 +152,7 @@ cmd({
             }
         }
         
-        // THIRD PASS: Check for partial matches (like "play" in "playing")
+        // THIRD PASS: Check for partial matches (like "playing" contains "play")
         if (!foundCommand) {
             for (const cmd of sortedCommands) {
                 const patterns = Array.isArray(cmd.pattern) ? cmd.pattern : [cmd.pattern];
@@ -167,13 +163,12 @@ cmd({
                     const nameLower = name.toLowerCase();
                     if (nameLower.length < 2) continue;
                     
-                    // Check if the command name is a substring
-                    if (lowerCleanMsg.includes(nameLower) && lowerCleanMsg.split(/\s+/).some(w => w.startsWith(nameLower))) {
+                    if (lowerCleanMsg.includes(nameLower) && 
+                        lowerCleanMsg.split(/\s+/).some(w => w.startsWith(nameLower))) {
                         foundCommand = cmd;
                         commandPattern = name;
                         matchedCommandName = nameLower;
                         
-                        // Extract everything AFTER the command name
                         const parts = cleanMsg.split(new RegExp(name, 'i'));
                         if (parts.length > 1) {
                             const afterCommand = parts.slice(1).join(' ').trim();
@@ -190,7 +185,6 @@ cmd({
         
         // If command found, execute it
         if (foundCommand && commandPattern) {
-            // Send "Ok boss" message with quoted reply
             const okMsg = await client.sendMessage(from, { 
                 text: `🤖 *KHAN:* Ok boss! Processing "${commandPattern}"...`,
                 quoted: message
@@ -207,7 +201,6 @@ cmd({
                 } catch (e) {}
             }
             
-            // Create the context with the command
             const context = {
                 from,
                 reply,
@@ -225,113 +218,106 @@ cmd({
             try {
                 await foundCommand.function(client, message, m, context);
             } catch (err) {
-                console.error("Command execution error:", err);
-                // Silent fail - don't show error to user
-                await client.sendMessage(from, { 
-                    text: `🤖 *KHAN:* Sorry, I couldn't process that command. Try again!`,
-                    quoted: message
-                });
+                await reply(`❌ Error executing command: ${err.message}`);
             }
             
             return;
         }
         
-        // ===== FALLBACK: SIMPLE GET REQUESTS (NO HEADERS) =====
-        let replyText = null;
-        let apiSuccess = false;
-        
-        // Send thinking message
-        const thinkingMsg = await client.sendMessage(from, { 
-            text: `🤖 *KHAN:* Let me think about that...`,
-            quoted: message
-        });
-        
+        // ===== FALLBACK TO POLLINATIONS.AI API =====
         try {
-            await client.sendMessage(from, {
-                react: {
-                    text: '🧠',
-                    key: thinkingMsg.key
-                }
+            const thinkingMsg = await client.sendMessage(from, { 
+                text: `🤖 *KHAN:* Let me think about that...`,
+                quoted: message
             });
-        } catch (e) {}
-        
-        // ATTEMPT 1: Pollinations.ai GET (SIMPLE - NO HEADERS)
-        if (!apiSuccess) {
-            try {
-                const encodedPrompt = encodeURIComponent(cleanMsg);
-                const response = await axios.get(
-                    `${POLLINATIONS_API}/${encodedPrompt}`,
-                    { timeout: 30000 }
-                );
-                
-                if (response.data && typeof response.data === 'string' && response.data.length > 3) {
-                    replyText = response.data.trim();
-                    apiSuccess = true;
-                }
-            } catch (e) {
-                // Silent fail - try next
-            }
-        }
-        
-        // ATTEMPT 2: Gemini API (backup - NO HEADERS)
-        if (!apiSuccess) {
-            try {
-                const encodedPrompt = encodeURIComponent(cleanMsg);
-                const response = await axios.get(
-                    `${GEMINI_API}?prompt=${encodedPrompt}`,
-                    { timeout: 30000 }
-                );
-                
-                if (response.data?.reply) {
-                    replyText = response.data.reply.trim();
-                    apiSuccess = true;
-                } else if (typeof response.data === 'string' && response.data.length > 3) {
-                    replyText = response.data.trim();
-                    apiSuccess = true;
-                }
-            } catch (e) {
-                // Silent fail - try next
-            }
-        }
-        
-        // Send final response
-        if (apiSuccess && replyText && replyText.length > 3) {
-            const finalText = `🤖 *KHAN:* ${replyText}`;
             
-            const protocolMsg = {
-                key: thinkingMsg.key,
-                type: 0xe,
-                editedMessage: { 
-                    conversation: finalText
+            try {
+                await client.sendMessage(from, {
+                    react: {
+                        text: '🧠',
+                        key: thinkingMsg.key
+                    }
+                });
+            } catch (e) {}
+            
+            const encodedPrompt = encodeURIComponent(cleanMsg);
+            const apiUrl = `${POLLINATIONS_API}/${encodedPrompt}?json=true`;
+            
+            console.log(`📡 Calling Pollinations API: ${apiUrl}`);
+            
+            const response = await axios.get(apiUrl, {
+                timeout: 30000
+            });
+            
+            console.log(`✅ Pollinations API Response:`, response.data);
+            
+            let replyText = null;
+            
+            if (response.data) {
+                if (response.data.content) {
+                    replyText = response.data.content;
+                } else if (response.data.response) {
+                    replyText = response.data.response;
+                } else if (response.data.reply) {
+                    replyText = response.data.reply;
+                } else if (typeof response.data === 'string') {
+                    replyText = response.data;
+                } else if (response.data.choices && response.data.choices[0]?.message?.content) {
+                    replyText = response.data.choices[0].message.content;
                 }
-            };
-            await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
-        } else {
-            // All APIs failed - show usage help instead of error
-            const helpText = `🤖 *KHAN:* I didn't understand "${cleanMsg}"
+            }
+            
+            if (replyText && replyText.length > 3) {
+                const finalText = `🤖 *KHAN:* ${replyText}`;
+                
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: finalText
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
+            } else {
+                const helpText = `🤖 *KHAN:* I didn't understand "${cleanMsg}"
 
 📋 *Try these:*
 • ${matchedText} menu - Show all commands
 • ${matchedText} play <song> - Play music
 • ${matchedText} ping - Check response
 • ${matchedText} status - Bot status
-• ${matchedText} <question> - Ask me anything!
+• ${matchedText} <question> - Ask me anything!`;
+
+                const protocolMsg = {
+                    key: thinkingMsg.key,
+                    type: 0xe,
+                    editedMessage: { 
+                        conversation: helpText
+                    }
+                };
+                await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
+            }
+            
+        } catch (error) {
+            console.error("Pollinations API Error:", error.message);
+            
+            const helpText = `🤖 *KHAN:* I'm having trouble connecting. Try these commands instead:
+
+• ${matchedText} menu - Show all commands
+• ${matchedText} play <song> - Play music
+• ${matchedText} ping - Check response
+• ${matchedText} status - Bot status
 
 💡 *Just say "${matchedText}" to see all options*`;
 
-            const protocolMsg = {
-                key: thinkingMsg.key,
-                type: 0xe,
-                editedMessage: { 
-                    conversation: helpText
-                }
-            };
-            await client.relayMessage(from, { protocolMessage: protocolMsg }, {});
+            await client.sendMessage(from, { 
+                text: helpText,
+                quoted: message
+            });
         }
         
     } catch (error) {
         console.error("KHAN Plugin Error:", error);
-        // Silent fail - no error shown to user
         try {
             await client.sendMessage(from, { 
                 text: `🤖 *KHAN:* Sorry, I'm having trouble right now. Try again in a moment!`,

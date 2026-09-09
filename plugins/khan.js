@@ -1,4 +1,4 @@
-// plugins/KHAN.js - ESM Version
+// plugins/khan.js - ESM Version
 import { fileURLToPath } from 'url';
 import { cmd, commands } from '../command.js';
 import config from '../config.js';
@@ -9,10 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 // Keywords that trigger KHAN (all case variations supported)
 const KHANTriggers = ["khan", "jarvis"];
 
-// API endpoints
+// API endpoints - SIMPLE GET REQUESTS (NO HEADERS)
 const POLLINATIONS_API = 'https://text.pollinations.ai';
 const GEMINI_API = 'https://jerrycoder.oggyapi.workers.dev/ai/gemini';
-const BACKUP_API = 'https://chatgpt.apinepdev.workers.dev/api/gpt';
 
 cmd({
     'on': "body"
@@ -110,6 +109,9 @@ cmd({
             // Check if any command name exists in the text
             for (const name of allNames) {
                 const nameLower = name.toLowerCase();
+                // Skip if command name is too short (like 'ai' might match 'again')
+                if (nameLower.length < 2) continue;
+                
                 // Check if the command name appears as a whole word in the text
                 const regex = new RegExp(`\\b${nameLower}\\b`, 'i');
                 if (regex.test(lowerCleanMsg)) {
@@ -140,11 +142,45 @@ cmd({
                 const allNames = [...patterns, ...aliases].filter(Boolean);
                 
                 for (const name of allNames) {
-                    if (words[0] === name.toLowerCase()) {
+                    const nameLower = name.toLowerCase();
+                    if (nameLower.length < 2) continue;
+                    if (words[0] === nameLower) {
                         foundCommand = cmd;
                         commandPattern = name;
-                        matchedCommandName = name.toLowerCase();
+                        matchedCommandName = nameLower;
                         foundArgs = words.slice(1);
+                        break;
+                    }
+                }
+                if (foundCommand) break;
+            }
+        }
+        
+        // THIRD PASS: Check for partial matches (like "play" in "playing")
+        if (!foundCommand) {
+            for (const cmd of sortedCommands) {
+                const patterns = Array.isArray(cmd.pattern) ? cmd.pattern : [cmd.pattern];
+                const aliases = Array.isArray(cmd.alias) ? cmd.alias : (cmd.alias ? [cmd.alias] : []);
+                const allNames = [...patterns, ...aliases].filter(Boolean);
+                
+                for (const name of allNames) {
+                    const nameLower = name.toLowerCase();
+                    if (nameLower.length < 2) continue;
+                    
+                    // Check if the command name is a substring
+                    if (lowerCleanMsg.includes(nameLower) && lowerCleanMsg.split(/\s+/).some(w => w.startsWith(nameLower))) {
+                        foundCommand = cmd;
+                        commandPattern = name;
+                        matchedCommandName = nameLower;
+                        
+                        // Extract everything AFTER the command name
+                        const parts = cleanMsg.split(new RegExp(name, 'i'));
+                        if (parts.length > 1) {
+                            const afterCommand = parts.slice(1).join(' ').trim();
+                            foundArgs = afterCommand ? afterCommand.split(/\s+/) : [];
+                        } else {
+                            foundArgs = [];
+                        }
                         break;
                     }
                 }
@@ -189,6 +225,7 @@ cmd({
             try {
                 await foundCommand.function(client, message, m, context);
             } catch (err) {
+                console.error("Command execution error:", err);
                 // Silent fail - don't show error to user
                 await client.sendMessage(from, { 
                     text: `🤖 *KHAN:* Sorry, I couldn't process that command. Try again!`,
@@ -199,7 +236,7 @@ cmd({
             return;
         }
         
-        // ===== FALLBACK: TRY ALL APIs SILENTLY =====
+        // ===== FALLBACK: SIMPLE GET REQUESTS (NO HEADERS) =====
         let replyText = null;
         let apiSuccess = false;
         
@@ -218,49 +255,16 @@ cmd({
             });
         } catch (e) {}
         
-        // ATTEMPT 1: Pollinations.ai POST /openai
+        // ATTEMPT 1: Pollinations.ai GET (SIMPLE - NO HEADERS)
         if (!apiSuccess) {
             try {
-                const response = await axios.post(`${POLLINATIONS_API}/openai`, {
-                    model: "openai",
-                    messages: [
-                        { role: "system", content: "You are a helpful AI assistant named KHAN." },
-                        { role: "user", content: cleanMsg }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 500
-                }, {
-                    timeout: 30000,
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "User-Agent": "Mozilla/5.0" 
-                    }
-                });
-                
-                if (response.data?.choices?.[0]?.message?.content) {
-                    replyText = response.data.choices[0].message.content.trim();
-                    apiSuccess = true;
-                }
-            } catch (e) {
-                // Silent fail - try next
-            }
-        }
-        
-        // ATTEMPT 2: Pollinations.ai GET
-        if (!apiSuccess) {
-            try {
+                const encodedPrompt = encodeURIComponent(cleanMsg);
                 const response = await axios.get(
-                    `${POLLINATIONS_API}/${encodeURIComponent(cleanMsg)}?json=true`,
-                    {
-                        timeout: 30000,
-                        headers: { "User-Agent": "Mozilla/5.0" }
-                    }
+                    `${POLLINATIONS_API}/${encodedPrompt}`,
+                    { timeout: 30000 }
                 );
                 
-                if (response.data?.response) {
-                    replyText = response.data.response.trim();
-                    apiSuccess = true;
-                } else if (typeof response.data === 'string' && response.data.length > 3) {
+                if (response.data && typeof response.data === 'string' && response.data.length > 3) {
                     replyText = response.data.trim();
                     apiSuccess = true;
                 }
@@ -269,34 +273,20 @@ cmd({
             }
         }
         
-        // ATTEMPT 3: Gemini API
+        // ATTEMPT 2: Gemini API (backup - NO HEADERS)
         if (!apiSuccess) {
             try {
-                const response = await axios.get(GEMINI_API, {
-                    params: { prompt: cleanMsg },
-                    timeout: 30000,
-                    headers: { "Accept": "application/json" }
-                });
+                const encodedPrompt = encodeURIComponent(cleanMsg);
+                const response = await axios.get(
+                    `${GEMINI_API}?prompt=${encodedPrompt}`,
+                    { timeout: 30000 }
+                );
                 
                 if (response.data?.reply) {
                     replyText = response.data.reply.trim();
                     apiSuccess = true;
-                }
-            } catch (e) {
-                // Silent fail - try next
-            }
-        }
-        
-        // ATTEMPT 4: Backup API
-        if (!apiSuccess) {
-            try {
-                const response = await axios.get(
-                    `${BACKUP_API}?question=${encodeURIComponent(cleanMsg)}`,
-                    { timeout: 30000 }
-                );
-                
-                if (response.data?.result || response.data?.text || response.data?.response) {
-                    replyText = response.data.result || response.data.text || response.data.response;
+                } else if (typeof response.data === 'string' && response.data.length > 3) {
+                    replyText = response.data.trim();
                     apiSuccess = true;
                 }
             } catch (e) {

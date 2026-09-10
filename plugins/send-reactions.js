@@ -1,175 +1,74 @@
-import { cmd } from '../command.js';
+import { fileURLToPath } from 'url';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { tmpdir } from 'os';
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import { fileURLToPath } from 'url';
+import { cmd } from '../command.js';
 
-// ========== FIX: Get __filename in ES module ==========
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 
-// ========== 200 RANDOM NON-PERSON NAME WORDS ==========
-const nameList = [
-    'alpha', 'beta', 'gamma', 'delta', 'omega', 'sigma', 'theta', 'lambda', 'zeta', 'kappa',
-    'nova', 'luna', 'sol', 'terra', 'mars', 'venus', 'jupiter', 'saturn', 'pluto', 'orbit',
-    'comet', 'meteor', 'astro', 'cosmo', 'galaxy', 'nebula', 'quasar', 'pulsar', 'photon', 'quark',
-    'atom', 'molecule', 'crystal', 'prism', 'laser', 'plasma', 'fusion', 'reactor', 'circuit', 'matrix',
-    'vector', 'pixel', 'byte', 'node', 'kernel', 'stack', 'queue', 'cache', 'proxy', 'socket',
-    'router', 'server', 'client', 'packet', 'stream', 'buffer', 'thread', 'process', 'daemon', 'cloud',
-    'storm', 'thunder', 'lightning', 'rain', 'snow', 'frost', 'blaze', 'flame', 'ember', 'ash',
-    'shadow', 'ghost', 'phantom', 'specter', 'wraith', 'shade', 'void', 'abyss', 'echo', 'whisper',
-    'silent', 'hidden', 'secret', 'mystic', 'arcane', 'runic', 'glyph', 'sigil', 'talisman', 'relic',
-    'titan', 'atlas', 'hermes', 'apollo', 'artemis', 'zeus', 'hera', 'ares', 'nyx', 'eros',
-    'phoenix', 'dragon', 'griffin', 'hydra', 'kraken', 'wyvern', 'basilisk', 'chimera', 'sphinx', 'pegasus',
-    'falcon', 'raven', 'hawk', 'eagle', 'owl', 'wolf', 'fox', 'lynx', 'panther', 'tiger',
-    'cobra', 'viper', 'python', 'asp', 'mamba', 'scorpion', 'spider', 'mantis', 'hornet', 'wasp',
-    'ocean', 'river', 'lake', 'pond', 'creek', 'wave', 'tide', 'current', 'ripple', 'surge',
-    'mountain', 'valley', 'canyon', 'ridge', 'peak', 'summit', 'cliff', 'plateau', 'mesa', 'dune',
-    'forest', 'jungle', 'grove', 'thicket', 'meadow', 'prairie', 'savanna', 'tundra', 'desert', 'oasis',
-    'crimson', 'scarlet', 'azure', 'cyan', 'emerald', 'jade', 'amber', 'topaz', 'ruby', 'sapphire',
-    'onyx', 'opal', 'pearl', 'coral', 'ivory', 'ebony', 'silver', 'golden', 'bronze', 'copper',
-    'iron', 'steel', 'titanium', 'obsidian', 'granite', 'marble', 'quartz', 'flint', 'slate', 'basalt',
-    'swift', 'rapid', 'quick', 'agile', 'nimble', 'brisk', 'fleet', 'hasty', 'speedy', 'zippy'
-];
+// ========== ENCODED API URLS ==========
+const FIRST_ENCODED_API_URL = 'aHR0cHM6Ly9uZWtvcy5iZXN0L2FwaS92Mi8=';
+const FIRST_API_URL = Buffer.from(FIRST_ENCODED_API_URL, 'base64').toString('utf-8');
 
-// ========== 200 RANDOM NON-PERSON BASE WORDS ==========
-const baseList = [
-    'core', 'edge', 'zone', 'grid', 'link', 'port', 'hub', 'sync', 'flux', 'loop',
-    'gate', 'path', 'root', 'seed', 'leaf', 'tree', 'stem', 'vine', 'moss', 'fern',
-    'stone', 'rock', 'sand', 'dust', 'clay', 'mud', 'soil', 'earth', 'lava', 'magma',
-    'wind', 'breeze', 'gale', 'gust', 'draft', 'zephyr', 'mist', 'fog', 'haze', 'vapor',
-    'spark', 'glow', 'shine', 'gleam', 'flash', 'beam', 'ray', 'halo', 'aura', 'veil',
-    'pulse', 'beat', 'rhythm', 'tempo', 'chord', 'note', 'tone', 'tune', 'song', 'verse',
-    'word', 'line', 'page', 'book', 'tome', 'scroll', 'script', 'code', 'cipher', 'key',
-    'lock', 'chain', 'bond', 'knot', 'braid', 'weave', 'thread', 'fiber', 'cord', 'rope',
-    'blade', 'spear', 'arrow', 'shield', 'armor', 'helm', 'gauntlet', 'buckler', 'dagger', 'sword',
-    'forge', 'anvil', 'hammer', 'chisel', 'craft', 'build', 'make', 'shape', 'mold', 'cast',
-    'tower', 'spire', 'dome', 'arch', 'pillar', 'column', 'wall', 'keep', 'citadel', 'bastion',
-    'ship', 'sail', 'mast', 'hull', 'anchor', 'compass', 'rudder', 'deck', 'helm', 'voyage',
-    'star', 'moon', 'sun', 'dawn', 'dusk', 'night', 'day', 'noon', 'eve', 'morn',
-    'north', 'south', 'east', 'west', 'zenith', 'nadir', 'apex', 'verge', 'brink', 'border',
-    'ring', 'circle', 'spiral', 'curve', 'angle', 'point', 'plane', 'cube', 'sphere', 'arc',
-    'bolt', 'clasp', 'pin', 'nail', 'screw', 'rivet', 'weld', 'seam', 'stitch', 'thread',
-    'glass', 'mirror', 'lens', 'window', 'frame', 'panel', 'tile', 'brick', 'beam', 'post',
-    'soot', 'coal', 'cinder', 'char', 'scorch', 'singe', 'burn', 'flare', 'torch', 'lantern',
-    'drop', 'drip', 'pour', 'flow', 'rush', 'gush', 'splash', 'spray', 'foam', 'bubble',
-    'chill', 'cold', 'warm', 'heat', 'steam', 'smoke', 'fume', 'scent', 'aroma', 'perfume'
-];
+const SECOND_ENCODED_API_URL = 'aHR0cHM6Ly9hcGkucHVycmJvdC5zaXRlL3YyL2ltZy9zZncv';
+const SECOND_API_URL = Buffer.from(SECOND_ENCODED_API_URL, 'base64').toString('utf-8');
 
-// ========== INJECT RANDOM ABC LETTERS ==========
-function injectRandomLetters(str) {
-    const mode = crypto.randomInt(0, 3); // 0 = start, 1 = end, 2 = inside
-    const len = crypto.randomInt(1, 4);  // 1-3 letters
-    let letters = '';
-    for (let i = 0; i < len; i++) {
-        letters += String.fromCharCode(crypto.randomInt(97, 123));
+const THIRD_ENCODED_API_URL = 'aHR0cHM6Ly9hcGkub3Rha3VnaWZzLnh5ei9naWY/cmVhY3Rpb249';
+const THIRD_API_URL = Buffer.from(THIRD_ENCODED_API_URL, 'base64').toString('utf-8');
+
+const FOURTH_ENCODED_API_URL = 'aHR0cHM6Ly9uZWtvcy5saWZlL2FwaS92Mi9pbWcv';
+const FOURTH_API_URL = Buffer.from(FOURTH_ENCODED_API_URL, 'base64').toString('utf-8');
+
+// ========== GET GIF — tries all APIs with same action ==========
+async function getGifX(action) {
+    const sources = [
+        async () => {
+            const r = await axios.get(`${FIRST_API_URL}${action}`);
+            return r.data?.results?.[0]?.url || null;
+        },
+        async () => {
+            const r = await axios.get(`${SECOND_API_URL}${action}/gif`);
+            return (r.data?.error === false && r.data?.link) ? r.data.link : null;
+        },
+        async () => {
+            const r = await axios.get(`${THIRD_API_URL}${action}`);
+            return r.data?.url || null;
+        },
+        async () => {
+            const r = await axios.get(`${FOURTH_API_URL}${action}`);
+            return r.data?.url || null;
+        }
+    ];
+    for (const src of sources) {
+        try {
+            const url = await src();
+            if (url) return url;
+        } catch (_) {}
     }
-    if (mode === 0) return letters + str;                          // start
-    if (mode === 1) return str + letters;                          // end
-    const pos = crypto.randomInt(1, Math.max(2, str.length));      // inside
-    return str.slice(0, pos) + letters + str.slice(pos);
+    throw new Error('No reaction GIF source available.');
 }
 
-// ========== RANDOM FILE BASE (best / lest / nothing / random word) ==========
-function randomFileBase() {
-    const known = ['best', 'lest', 'nothing'];
-    if (crypto.randomInt(0, 10) < 7) {
-        return known[crypto.randomInt(0, known.length)];
-    }
-    return baseList[crypto.randomInt(0, baseList.length)];
-}
-
-// ========== PICK N RANDOM UNIQUE WORDS FROM A LIST ==========
-function pickWords(list, count) {
-    const used = new Set();
-    let out = '';
-    for (let i = 0; i < count; i++) {
-        let idx;
-        let guard = 0;
-        do {
-            idx = crypto.randomInt(0, list.length);
-            guard++;
-        } while (used.has(idx) && guard < 50);
-        used.add(idx);
-        out += list[idx];
-    }
-    return out;
-}
-
-// ========== GENERATE RANDOM USER-AGENT WITH CRYPTO ==========
-function generateRandomUserAgent() {
-    const nameCount = crypto.randomInt(2, 6); // 2-5 words
-    let name = pickWords(nameList, nameCount);
-
-    const baseWordCount = crypto.randomInt(1, 4); // 1-3 words
-    let base = pickWords(baseList, baseWordCount);
-
-    // Sometimes use known base (best/lest/nothing)
-    if (crypto.randomInt(0, 2) === 0) {
-        base = randomFileBase();
-    }
-
-    // Inject random abc letters into BOTH
-    name = injectRandomLetters(name);
-    base = injectRandomLetters(base);
-
-    return `${name}-${base}.js / 6.6.0`;
-}
-
-// ========== FETCH GIF FROM NEKOS.BEST ==========
-async function getNekosGif(action) {
-    const userAgent = generateRandomUserAgent();
-
-    const apiUrl = `https://nekos.best/api/v2/${action}`;
-    const response = await axios.get(apiUrl, {
-        headers: { 'User-Agent': userAgent }
-    });
-
-    const gifUrl = response.data.results[0].url;
-
-    const gifResponse = await axios.get(gifUrl, {
-        responseType: 'arraybuffer',
-        headers: { 'User-Agent': userAgent },
-        timeout: 15000
-    });
-
-    return gifResponse.data;
-}
-
-// ========== CONVERT GIF TO VIDEO ==========
+// ========== GIF → VIDEO ==========
 async function gifToVideo(gifBuffer) {
-    const filename = crypto.randomBytes(6).toString('hex');
-    const gifPath = path.join(tmpdir(), `${filename}.gif`);
-    const mp4Path = path.join(tmpdir(), `${filename}.mp4`);
-
+    const id = randomBytes(6).toString('hex');
+    const gifPath = path.join(tmpdir(), `${id}.gif`);
+    const mp4Path = path.join(tmpdir(), `${id}.mp4`);
     fs.writeFileSync(gifPath, gifBuffer);
-
-    await new Promise((resolve, reject) => {
+    await new Promise((res, rej) => {
         ffmpeg(gifPath)
-            .outputOptions([
-                "-movflags faststart",
-                "-pix_fmt yuv420p",
-                "-vf scale=trunc(iw/2)*2:trunc(ih/2)*2"
-            ])
-            .on("error", (err) => {
-                console.error("❌ ffmpeg conversion error:", err);
-                reject(new Error("Could not process GIF to video."));
-            })
-            .on("end", resolve)
+            .outputOptions(['-movflags faststart','-pix_fmt yuv420p','-vf scale=trunc(iw/2)*2:trunc(ih/2)*2'])
+            .on('error', () => rej(new Error('Could not process GIF to video.')))
+            .on('end', res)
             .save(mp4Path);
     });
-
-    const videoBuffer = fs.readFileSync(mp4Path);
-    fs.unlinkSync(gifPath);
-    fs.unlinkSync(mp4Path);
-
-    return videoBuffer;
+    const v = fs.readFileSync(mp4Path);
+    fs.unlinkSync(gifPath); fs.unlinkSync(mp4Path);
+    return v;
 }
 
 // ==================== LURK COMMAND ====================
@@ -192,8 +91,9 @@ cmd({
             ? `${sender} is lurking everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("lurk");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("lurk");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -204,89 +104,6 @@ cmd({
         console.error("❌ Error in .lurk command:", error);
         reply(`❌ *Error in .lurk command:*\n\`\`\`${error.message}\`\`\``);
     }
-});
-
-// ==================== KILL COMMAND ====================
-cmd({
-    pattern: "kill",
-    desc: "Send a kill reaction GIF.",
-    category: "fun",
-    react: "💀",
-    filename: __filename,
-    use: "@tag (optional)",
-}, async (conn, mek, m, { args, q, reply }) => {
-    try {
-        let sender = `@${mek.sender.split("@")[0]}`;
-        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
-        let isGroup = m.isGroup;
-
-        const category = "shoot";
-
-        let message = mentionedUser
-            ? `${sender} killed @${mentionedUser.split("@")[0]} 💀`
-            : isGroup
-            ? `${sender} killed everyone! 💀`
-            : `> © Powered By JawadTechX 🖤`;
-
-        let gifBuffer = await getNekosGif(category);
-        let videoBuffer = await gifToVideo(gifBuffer);
-
-        await conn.sendMessage(
-            mek.chat,
-            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
-            { quoted: mek }
-        );
-    } catch (error) {
-        console.error("❌ Error in .kill command:", error);
-        reply(`❌ *Error in .kill command:*\n\`\`\`${error.message}\`\`\``);
-    }
-});
-
-// ==================== MARIGE COMMAND ====================
-cmd({
-  pattern: "marige",
-  alias: ["shadi", "marriage", "wedding"],
-  desc: "Randomly pairs two users for marriage with a wedding GIF",
-  react: "💍",
-  category: "fun",
-  filename: __filename
-}, async (conn, mek, m, { from, sender, isGroup, reply }) => {
-  try {
-    if (!isGroup) return reply("❌ This command can only be used in groups!");
-
-    const groupMetadata = await conn.groupMetadata(from);
-    if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
-
-    const participants = groupMetadata.participants.map(user => user.id);
-    const botNumber = conn.user.id;
-
-    const eligibleParticipants = participants.filter(id => id !== sender && id !== botNumber);
-
-    if (eligibleParticipants.length < 1) return reply("❌ Not enough participants to perform a marriage!");
-
-    const randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
-    const randomPair = eligibleParticipants[randomIndex];
-
-    let gifBuffer = await getNekosGif("hug");
-    let videoBuffer = await gifToVideo(gifBuffer);
-
-    const message = `💍 *Shadi Mubarak!* 💒\n\n👰 @${sender.split("@")[0]} + 🤵 @${randomPair.split("@")[0]}\n\nMay you both live happily ever after! 💖`;
-
-    await conn.sendMessage(
-      from,
-      {
-        video: videoBuffer,
-        caption: message,
-        gifPlayback: true,
-        mentions: [sender, randomPair]
-      },
-      { quoted: mek }
-    );
-
-  } catch (error) {
-    console.error("❌ Error in .marige command:", error);
-    reply(`❌ *Error in .marige command:*\n\`\`\`${error.message}\`\`\``);
-  }
 });
 
 // ==================== SHOOT COMMAND ====================
@@ -309,8 +126,9 @@ cmd({
             ? `${sender} shot everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("shoot");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("shoot");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -343,8 +161,9 @@ cmd({
             ? `${sender} is sleeping!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("sleep");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("sleep");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -377,8 +196,9 @@ cmd({
             ? `${sender} clapped for everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("clap");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("clap");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -411,8 +231,9 @@ cmd({
             ? `${sender} shrugged at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("shrug");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("shrug");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -445,8 +266,9 @@ cmd({
             ? `${sender} is staring at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("stare");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("stare");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -479,8 +301,9 @@ cmd({
             ? `${sender} is waving at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("wave");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("wave");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -513,8 +336,9 @@ cmd({
             ? `${sender} poked everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("poke");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("poke");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -547,8 +371,9 @@ cmd({
             ? `${sender} is confused!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("confused");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("confused");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -581,8 +406,9 @@ cmd({
             ? `${sender} is smiling at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("smile");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("smile");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -615,8 +441,9 @@ cmd({
             ? `${sender} pecked everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("peck");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("peck");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -649,8 +476,9 @@ cmd({
             ? `${sender} is winking at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("wink");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("wink");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -683,8 +511,9 @@ cmd({
             ? `${sender} is sipping!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("sip");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("sip");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -717,8 +546,9 @@ cmd({
             ? `${sender} is blushing!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("blush");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("blush");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -751,8 +581,9 @@ cmd({
             ? `${sender} is feeling smug!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("smug");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("smug");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -785,8 +616,9 @@ cmd({
             ? `${sender} tickled everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("tickle");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("tickle");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -819,8 +651,9 @@ cmd({
             ? `${sender} is yeeting everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("yeet");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("yeet");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -853,8 +686,9 @@ cmd({
             ? `${sender} is thinking!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("think");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("think");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -870,7 +704,7 @@ cmd({
 // ==================== HIGHFIVE COMMAND ====================
 cmd({
     pattern: "highfive",
-    desc: "Send a high-five reaction GIF.",
+    desc: "Send a highfive reaction GIF.",
     category: "fun",
     react: "✋",
     filename: __filename,
@@ -887,8 +721,9 @@ cmd({
             ? `${sender} is high-fiving everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("highfive");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("highfive");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -921,8 +756,9 @@ cmd({
             ? `${sender} is feeding everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("feed");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("feed");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -932,40 +768,6 @@ cmd({
     } catch (error) {
         console.error("❌ Error in .feed command:", error);
         reply(`❌ *Error in .feed command:*\n\`\`\`${error.message}\`\`\``);
-    }
-});
-
-// ==================== WAG COMMAND ====================
-cmd({
-    pattern: "wag",
-    desc: "Send a wag reaction GIF.",
-    category: "fun",
-    react: "🐕",
-    filename: __filename,
-    use: "@tag (optional)",
-}, async (conn, mek, m, { args, q, reply }) => {
-    try {
-        let sender = `@${mek.sender.split("@")[0]}`;
-        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
-        let isGroup = m.isGroup;
-
-        let message = mentionedUser
-            ? `${sender} wagged at @${mentionedUser.split("@")[0]}`
-            : isGroup
-            ? `${sender} wagged at everyone!`
-            : `> © Powered By JawadTechX 🖤`;
-
-        let gifBuffer = await getNekosGif("wag");
-        let videoBuffer = await gifToVideo(gifBuffer);
-
-        await conn.sendMessage(
-            mek.chat,
-            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
-            { quoted: mek }
-        );
-    } catch (error) {
-        console.error("❌ Error in .wag command:", error);
-        reply(`❌ *Error in .wag command:*\n\`\`\`${error.message}\`\`\``);
     }
 });
 
@@ -989,8 +791,9 @@ cmd({
             ? `${sender} is biting everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("bite");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("bite");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1023,8 +826,9 @@ cmd({
             ? `${sender} teehee'd at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("teehee");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("teehee");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1057,8 +861,9 @@ cmd({
             ? `${sender} is shocked!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("shocked");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("shocked");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1091,8 +896,9 @@ cmd({
             ? `${sender} bleh'd at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("bleh");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("bleh");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1125,8 +931,9 @@ cmd({
             ? `${sender} is bored!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("bored");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("bored");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1159,8 +966,9 @@ cmd({
             ? `${sender} is nomming everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("nom");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("nom");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1178,7 +986,7 @@ cmd({
     pattern: "nya",
     desc: "Send a nya reaction GIF.",
     category: "fun",
-    react: "🐱",
+    react: "😺",
     filename: __filename,
     use: "@tag (optional)",
 }, async (conn, mek, m, { args, q, reply }) => {
@@ -1193,8 +1001,9 @@ cmd({
             ? `${sender} nya'd at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("nya");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("nya");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1227,8 +1036,9 @@ cmd({
             ? `${sender} yawned at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("yawn");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("yawn");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1261,8 +1071,9 @@ cmd({
             ? `${sender} facepalmed at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("facepalm");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("facepalm");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1295,8 +1106,9 @@ cmd({
             ? `${sender} is cuddling everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("cuddle");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("cuddle");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1329,8 +1141,9 @@ cmd({
             ? `${sender} kicked everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("kick");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("kick");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1363,8 +1176,9 @@ cmd({
             ? `${sender} is happy!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("happy");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("happy");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1397,8 +1211,9 @@ cmd({
             ? `${sender} carried everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("carry");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("carry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1431,8 +1246,9 @@ cmd({
             ? `${sender} is hugging everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("hug");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("hug");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1465,8 +1281,9 @@ cmd({
             ? `${sender} kabedon'd everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("kabedon");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("kabedon");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1499,8 +1316,9 @@ cmd({
             ? `${sender} called everyone baka!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("baka");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("baka");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1533,8 +1351,9 @@ cmd({
             ? `${sender} bonked everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("bonk");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("bonk");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1567,8 +1386,9 @@ cmd({
             ? `${sender} is patting everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("pat");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("pat");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1601,8 +1421,9 @@ cmd({
             ? `${sender} is angry!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("angry");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("angry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1635,8 +1456,9 @@ cmd({
             ? `${sender} spun everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("spin");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("spin");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1669,8 +1491,9 @@ cmd({
             ? `${sender} shook everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("shake");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("shake");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1703,8 +1526,9 @@ cmd({
             ? `${sender} ran from everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("run");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("run");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1737,8 +1561,9 @@ cmd({
             ? `${sender} nodded at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("nod");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("nod");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1771,8 +1596,9 @@ cmd({
             ? `${sender} said nope to everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("nope");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("nope");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1805,8 +1631,9 @@ cmd({
             ? `${sender} kissed everyone! 💋`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("kiss");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("kiss");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1839,8 +1666,9 @@ cmd({
             ? `${sender} is dancing with everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("dance");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("dance");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1873,8 +1701,9 @@ cmd({
             ? `${sender} punched everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("punch");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("punch");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1907,8 +1736,9 @@ cmd({
             ? `${sender} shook hands with everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("handshake");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("handshake");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1941,8 +1771,9 @@ cmd({
             ? `${sender} slapped everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("slap");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("slap");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1958,7 +1789,7 @@ cmd({
 // ==================== CRY COMMAND ====================
 cmd({
     pattern: "cry",
-    desc: "Send a crying reaction GIF.",
+    desc: "Send a cry reaction GIF.",
     category: "fun",
     react: "😢",
     filename: __filename,
@@ -1975,8 +1806,9 @@ cmd({
             ? `${sender} is crying!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("cry");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("cry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -1986,40 +1818,6 @@ cmd({
     } catch (error) {
         console.error("❌ Error in .cry command:", error);
         reply(`❌ *Error in .cry command:*\n\`\`\`${error.message}\`\`\``);
-    }
-});
-
-// ==================== LAPPILLOW COMMAND ====================
-cmd({
-    pattern: "lappillow",
-    desc: "Send a lappillow reaction GIF.",
-    category: "fun",
-    react: "🛏️",
-    filename: __filename,
-    use: "@tag (optional)",
-}, async (conn, mek, m, { args, q, reply }) => {
-    try {
-        let sender = `@${mek.sender.split("@")[0]}`;
-        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
-        let isGroup = m.isGroup;
-
-        let message = mentionedUser
-            ? `${sender} is using @${mentionedUser.split("@")[0]} as a lap pillow`
-            : isGroup
-            ? `${sender} is using everyone as a lap pillow!`
-            : `> © Powered By JawadTechX 🖤`;
-
-        let gifBuffer = await getNekosGif("lappillow");
-        let videoBuffer = await gifToVideo(gifBuffer);
-
-        await conn.sendMessage(
-            mek.chat,
-            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
-            { quoted: mek }
-        );
-    } catch (error) {
-        console.error("❌ Error in .lappillow command:", error);
-        reply(`❌ *Error in .lappillow command:*\n\`\`\`${error.message}\`\`\``);
     }
 });
 
@@ -2043,8 +1841,9 @@ cmd({
             ? `${sender} pouted at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("pout");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("pout");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2077,8 +1876,9 @@ cmd({
             ? `${sender} blew kisses to everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("blowkiss");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("blowkiss");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2094,7 +1894,7 @@ cmd({
 // ==================== HANDHOLD COMMAND ====================
 cmd({
     pattern: "handhold",
-    desc: "Send a hand-holding reaction GIF.",
+    desc: "Send a handhold reaction GIF.",
     category: "fun",
     react: "🤝",
     filename: __filename,
@@ -2111,8 +1911,9 @@ cmd({
             ? `${sender} wants to hold hands with everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("handhold");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("handhold");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2145,8 +1946,9 @@ cmd({
             ? `${sender} saluted everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("salute");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("salute");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2179,8 +1981,9 @@ cmd({
             ? `${sender} gave a thumbs up to everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("thumbsup");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("thumbsup");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2213,8 +2016,9 @@ cmd({
             ? `${sender} is laughing at everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("laugh");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("laugh");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2247,8 +2051,9 @@ cmd({
             ? `${sender} flipped a table on everyone!`
             : `> © Powered By JawadTechX 🖤`;
 
-        let gifBuffer = await getNekosGif("tableflip");
-        let videoBuffer = await gifToVideo(gifBuffer);
+        let url = await getGifX("tableflip");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
 
         await conn.sendMessage(
             mek.chat,
@@ -2258,5 +2063,740 @@ cmd({
     } catch (error) {
         console.error("❌ Error in .tableflip command:", error);
         reply(`❌ *Error in .tableflip command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== YES COMMAND ====================
+cmd({
+    pattern: "yes",
+    desc: "Send a yes reaction GIF.",
+    category: "fun",
+    react: "✅",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} agreed with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} agreed with everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("nod");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .yes command:", error);
+        reply(`❌ *Error in .yes command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== NO COMMAND ====================
+cmd({
+    pattern: "no",
+    desc: "Send a no reaction GIF.",
+    category: "fun",
+    react: "❌",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} said no to @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} said no to everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("nope");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .no command:", error);
+        reply(`❌ *Error in .no command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== STOP COMMAND ====================
+cmd({
+    pattern: "stop",
+    desc: "Send a stop reaction GIF.",
+    category: "fun",
+    react: "🛑",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} stopped @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} stopped everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("nope");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .stop command:", error);
+        reply(`❌ *Error in .stop command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SORRY COMMAND ====================
+cmd({
+    pattern: "sorry",
+    desc: "Send a sorry reaction GIF.",
+    category: "fun",
+    react: "🙏",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} apologized to @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} apologized to everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("cry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .sorry command:", error);
+        reply(`❌ *Error in .sorry command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SAD COMMAND ====================
+cmd({
+    pattern: "sad",
+    desc: "Send a sad reaction GIF.",
+    category: "fun",
+    react: "😔",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is sad with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is sad!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("cry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .sad command:", error);
+        reply(`❌ *Error in .sad command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SCARED COMMAND ====================
+cmd({
+    pattern: "scared",
+    desc: "Send a scared reaction GIF.",
+    category: "fun",
+    react: "😨",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is scared of @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is scared!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("shocked");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .scared command:", error);
+        reply(`❌ *Error in .scared command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SURPRISED COMMAND ====================
+cmd({
+    pattern: "surprised",
+    desc: "Send a surprised reaction GIF.",
+    category: "fun",
+    react: "😲",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is surprised by @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is surprised!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("shocked");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .surprised command:", error);
+        reply(`❌ *Error in .surprised command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== TIRED COMMAND ====================
+cmd({
+    pattern: "tired",
+    desc: "Send a tired reaction GIF.",
+    category: "fun",
+    react: "😩",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is tired of @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is tired!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("yawn");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .tired command:", error);
+        reply(`❌ *Error in .tired command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SIGH COMMAND ====================
+cmd({
+    pattern: "sigh",
+    desc: "Send a sigh reaction GIF.",
+    category: "fun",
+    react: "😮‍💨",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} sighed at @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} sighed at everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("bored");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .sigh command:", error);
+        reply(`❌ *Error in .sigh command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== SHY COMMAND ====================
+cmd({
+    pattern: "shy",
+    desc: "Send a shy reaction GIF.",
+    category: "fun",
+    react: "😳",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is shy with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is feeling shy!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("blush");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .shy command:", error);
+        reply(`❌ *Error in .shy command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== NUZZLE COMMAND ====================
+cmd({
+    pattern: "nuzzle",
+    desc: "Send a nuzzle reaction GIF.",
+    category: "fun",
+    react: "🥰",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} nuzzled @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is nuzzling everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("cuddle");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .nuzzle command:", error);
+        reply(`❌ *Error in .nuzzle command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== COOL COMMAND ====================
+cmd({
+    pattern: "cool",
+    desc: "Send a cool reaction GIF.",
+    category: "fun",
+    react: "😎",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is cool with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is cool with everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("smug");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .cool command:", error);
+        reply(`❌ *Error in .cool command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== CELEBRATE COMMAND ====================
+cmd({
+    pattern: "celebrate",
+    desc: "Send a celebrate reaction GIF.",
+    category: "fun",
+    react: "🎉",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} celebrates with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is celebrating with everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("happy");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .celebrate command:", error);
+        reply(`❌ *Error in .celebrate command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== YAY COMMAND ====================
+cmd({
+    pattern: "yay",
+    desc: "Send a yay reaction GIF.",
+    category: "fun",
+    react: "🎊",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is happy with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is celebrating with everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("happy");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .yay command:", error);
+        reply(`❌ *Error in .yay command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== HEADBANG COMMAND ====================
+cmd({
+    pattern: "headbang",
+    desc: "Send a headbang reaction GIF.",
+    category: "fun",
+    react: "🤘",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} headbangs with @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is headbanging!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("dance");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .headbang command:", error);
+        reply(`❌ *Error in .headbang command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== NOSEBLEED COMMAND ====================
+cmd({
+    pattern: "nosebleed",
+    desc: "Send a nosebleed reaction GIF.",
+    category: "fun",
+    react: "🩸",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} nosebleeds at @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is nosebleeding!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("shocked");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .nosebleed command:", error);
+        reply(`❌ *Error in .nosebleed command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== BULLY COMMAND ====================
+cmd({
+    pattern: "bully",
+    desc: "Send a bully reaction GIF.",
+    category: "fun",
+    react: "😈",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} is bullying @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is bullying everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("angry");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .bully command:", error);
+        reply(`❌ *Error in .bully command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== CRINGE COMMAND ====================
+cmd({
+    pattern: "cringe",
+    desc: "Send a cringe reaction GIF.",
+    category: "fun",
+    react: "😬",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} thinks @${mentionedUser.split("@")[0]} is cringe`
+            : isGroup
+            ? `${sender} finds everyone cringe`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("facepalm");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .cringe command:", error);
+        reply(`❌ *Error in .cringe command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== KILL COMMAND ====================
+cmd({
+    pattern: "kill",
+    desc: "Send a kill reaction GIF.",
+    category: "fun",
+    react: "🔪",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} killed @${mentionedUser.split("@")[0]} 💀`
+            : isGroup
+            ? `${sender} killed everyone! 💀`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("slap");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .kill command:", error);
+        reply(`❌ *Error in .kill command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== AWOO COMMAND ====================
+cmd({
+    pattern: "awoo",
+    desc: "Send an awoo reaction GIF.",
+    category: "fun",
+    react: "🐺",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} awoos at @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is awooing everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("run");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .awoo command:", error);
+        reply(`❌ *Error in .awoo command:*\n\`\`\`${error.message}\`\`\``);
+    }
+});
+
+// ==================== GLOMP COMMAND ====================
+cmd({
+    pattern: "glomp",
+    desc: "Send a glomp reaction GIF.",
+    category: "fun",
+    react: "🤗",
+    filename: __filename,
+    use: "@tag (optional)",
+}, async (conn, mek, m, { args, q, reply }) => {
+    try {
+        let sender = `@${mek.sender.split("@")[0]}`;
+        let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
+        let isGroup = m.isGroup;
+
+        let message = mentionedUser
+            ? `${sender} glomped @${mentionedUser.split("@")[0]}`
+            : isGroup
+            ? `${sender} is glomping everyone!`
+            : `> © Powered By JawadTechX 🖤`;
+
+        let url = await getGifX("hug");
+        let gifBuffer = (await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data;
+        let videoBuffer = await gifToVideo(Buffer.from(gifBuffer));
+
+        await conn.sendMessage(
+            mek.chat,
+            { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
+            { quoted: mek }
+        );
+    } catch (error) {
+        console.error("❌ Error in .glomp command:", error);
+        reply(`❌ *Error in .glomp command:*\n\`\`\`${error.message}\`\`\``);
     }
 });

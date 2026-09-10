@@ -14,82 +14,131 @@ const __dirname = path.dirname(__filename);
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 
+// ========== 200 RANDOM NON-PERSON NAME WORDS ==========
+const nameList = [
+    'alpha', 'beta', 'gamma', 'delta', 'omega', 'sigma', 'theta', 'lambda', 'zeta', 'kappa',
+    'nova', 'luna', 'sol', 'terra', 'mars', 'venus', 'jupiter', 'saturn', 'pluto', 'orbit',
+    'comet', 'meteor', 'astro', 'cosmo', 'galaxy', 'nebula', 'quasar', 'pulsar', 'photon', 'quark',
+    'atom', 'molecule', 'crystal', 'prism', 'laser', 'plasma', 'fusion', 'reactor', 'circuit', 'matrix',
+    'vector', 'pixel', 'byte', 'node', 'kernel', 'stack', 'queue', 'cache', 'proxy', 'socket',
+    'router', 'server', 'client', 'packet', 'stream', 'buffer', 'thread', 'process', 'daemon', 'cloud',
+    'storm', 'thunder', 'lightning', 'rain', 'snow', 'frost', 'blaze', 'flame', 'ember', 'ash',
+    'shadow', 'ghost', 'phantom', 'specter', 'wraith', 'shade', 'void', 'abyss', 'echo', 'whisper',
+    'silent', 'hidden', 'secret', 'mystic', 'arcane', 'runic', 'glyph', 'sigil', 'talisman', 'relic',
+    'titan', 'atlas', 'hermes', 'apollo', 'artemis', 'zeus', 'hera', 'ares', 'nyx', 'eros',
+    'phoenix', 'dragon', 'griffin', 'hydra', 'kraken', 'wyvern', 'basilisk', 'chimera', 'sphinx', 'pegasus',
+    'falcon', 'raven', 'hawk', 'eagle', 'owl', 'wolf', 'fox', 'lynx', 'panther', 'tiger',
+    'cobra', 'viper', 'python', 'asp', 'mamba', 'scorpion', 'spider', 'mantis', 'hornet', 'wasp',
+    'ocean', 'river', 'lake', 'pond', 'creek', 'wave', 'tide', 'current', 'ripple', 'surge',
+    'mountain', 'valley', 'canyon', 'ridge', 'peak', 'summit', 'cliff', 'plateau', 'mesa', 'dune',
+    'forest', 'jungle', 'grove', 'thicket', 'meadow', 'prairie', 'savanna', 'tundra', 'desert', 'oasis',
+    'crimson', 'scarlet', 'azure', 'cyan', 'emerald', 'jade', 'amber', 'topaz', 'ruby', 'sapphire',
+    'onyx', 'opal', 'pearl', 'coral', 'ivory', 'ebony', 'silver', 'golden', 'bronze', 'copper',
+    'iron', 'steel', 'titanium', 'obsidian', 'granite', 'marble', 'quartz', 'flint', 'slate', 'basalt',
+    'swift', 'rapid', 'quick', 'agile', 'nimble', 'brisk', 'fleet', 'hasty', 'speedy', 'zippy'
+];
+
+// ========== 200 RANDOM NON-PERSON BASE WORDS ==========
+const baseList = [
+    'core', 'edge', 'zone', 'grid', 'link', 'port', 'hub', 'sync', 'flux', 'loop',
+    'gate', 'path', 'root', 'seed', 'leaf', 'tree', 'stem', 'vine', 'moss', 'fern',
+    'stone', 'rock', 'sand', 'dust', 'clay', 'mud', 'soil', 'earth', 'lava', 'magma',
+    'wind', 'breeze', 'gale', 'gust', 'draft', 'zephyr', 'mist', 'fog', 'haze', 'vapor',
+    'spark', 'glow', 'shine', 'gleam', 'flash', 'beam', 'ray', 'halo', 'aura', 'veil',
+    'pulse', 'beat', 'rhythm', 'tempo', 'chord', 'note', 'tone', 'tune', 'song', 'verse',
+    'word', 'line', 'page', 'book', 'tome', 'scroll', 'script', 'code', 'cipher', 'key',
+    'lock', 'chain', 'bond', 'knot', 'braid', 'weave', 'thread', 'fiber', 'cord', 'rope',
+    'blade', 'spear', 'arrow', 'shield', 'armor', 'helm', 'gauntlet', 'buckler', 'dagger', 'sword',
+    'forge', 'anvil', 'hammer', 'chisel', 'craft', 'build', 'make', 'shape', 'mold', 'cast',
+    'tower', 'spire', 'dome', 'arch', 'pillar', 'column', 'wall', 'keep', 'citadel', 'bastion',
+    'ship', 'sail', 'mast', 'hull', 'anchor', 'compass', 'rudder', 'deck', 'helm', 'voyage',
+    'star', 'moon', 'sun', 'dawn', 'dusk', 'night', 'day', 'noon', 'eve', 'morn',
+    'north', 'south', 'east', 'west', 'zenith', 'nadir', 'apex', 'verge', 'brink', 'border',
+    'ring', 'circle', 'spiral', 'curve', 'angle', 'point', 'plane', 'cube', 'sphere', 'arc',
+    'bolt', 'clasp', 'pin', 'nail', 'screw', 'rivet', 'weld', 'seam', 'stitch', 'thread',
+    'glass', 'mirror', 'lens', 'window', 'frame', 'panel', 'tile', 'brick', 'beam', 'post',
+    'soot', 'coal', 'cinder', 'char', 'scorch', 'singe', 'burn', 'flare', 'torch', 'lantern',
+    'drop', 'drip', 'pour', 'flow', 'rush', 'gush', 'splash', 'spray', 'foam', 'bubble',
+    'chill', 'cold', 'warm', 'heat', 'steam', 'smoke', 'fume', 'scent', 'aroma', 'perfume'
+];
+
+// ========== INJECT RANDOM ABC LETTERS ==========
+function injectRandomLetters(str) {
+    const mode = crypto.randomInt(0, 3); // 0 = start, 1 = end, 2 = inside
+    const len = crypto.randomInt(1, 4);  // 1-3 letters
+    let letters = '';
+    for (let i = 0; i < len; i++) {
+        letters += String.fromCharCode(crypto.randomInt(97, 123));
+    }
+    if (mode === 0) return letters + str;                          // start
+    if (mode === 1) return str + letters;                          // end
+    const pos = crypto.randomInt(1, Math.max(2, str.length));      // inside
+    return str.slice(0, pos) + letters + str.slice(pos);
+}
+
+// ========== RANDOM FILE BASE (best / lest / nothing / random word) ==========
+function randomFileBase() {
+    const known = ['best', 'lest', 'nothing'];
+    if (crypto.randomInt(0, 10) < 7) {
+        return known[crypto.randomInt(0, known.length)];
+    }
+    return baseList[crypto.randomInt(0, baseList.length)];
+}
+
+// ========== PICK N RANDOM UNIQUE WORDS FROM A LIST ==========
+function pickWords(list, count) {
+    const used = new Set();
+    let out = '';
+    for (let i = 0; i < count; i++) {
+        let idx;
+        let guard = 0;
+        do {
+            idx = crypto.randomInt(0, list.length);
+            guard++;
+        } while (used.has(idx) && guard < 50);
+        used.add(idx);
+        out += list[idx];
+    }
+    return out;
+}
+
 // ========== GENERATE RANDOM USER-AGENT WITH CRYPTO ==========
 function generateRandomUserAgent() {
-    // Random prefix (1-3 characters)
-    const prefixLength = crypto.randomInt(1, 4);
-    let prefix = '';
-    for (let i = 0; i < prefixLength; i++) {
-        const char = String.fromCharCode(crypto.randomInt(97, 123)); // a-z
-        prefix += char;
-    }
-    
-    // Random suffix (1-3 characters)
-    const suffixLength = crypto.randomInt(1, 4);
-    let suffix = '';
-    for (let i = 0; i < suffixLength; i++) {
-        const char = String.fromCharCode(crypto.randomInt(97, 123)); // a-z
-        suffix += char;
-    }
-    
-    // Randomly choose between Jawad or Khan
-    const baseNames = ['jawad', 'khan'];
-    const baseName = baseNames[crypto.randomInt(0, baseNames.length)];
-    
-    // Randomly add extra letters in middle (0-2 characters)
-    const extraLength = crypto.randomInt(0, 3);
-    let extra = '';
-    for (let i = 0; i < extraLength; i++) {
-        const char = String.fromCharCode(crypto.randomInt(97, 123)); // a-z
-        extra += char;
-    }
-    
-    // Build the name
-    let name = '';
+    const nameCount = crypto.randomInt(2, 6); // 2-5 words
+    let name = pickWords(nameList, nameCount);
+
+    const baseWordCount = crypto.randomInt(1, 4); // 1-3 words
+    let base = pickWords(baseList, baseWordCount);
+
+    // Sometimes use known base (best/lest/nothing)
     if (crypto.randomInt(0, 2) === 0) {
-        // Prefix + base + extra + suffix
-        name = prefix + baseName + extra + suffix;
-    } else {
-        // Prefix + extra + base + suffix
-        name = prefix + extra + baseName + suffix;
+        base = randomFileBase();
     }
-    
-    // Ensure minimum length (at least 5 chars)
-    while (name.length < 5) {
-        const char = String.fromCharCode(crypto.randomInt(97, 123));
-        name += char;
-    }
-    
-    // Clean up - ensure no empty parts and valid format
-    name = name.replace(/[^a-z]/g, '');
-    
-    // Add -best.js suffix with version
-    return `${name}-best.js / 6.6.0`;
+
+    // Inject random abc letters into BOTH
+    name = injectRandomLetters(name);
+    base = injectRandomLetters(base);
+
+    return `${name}-${base}.js / 6.6.0`;
 }
 
 // ========== FETCH GIF FROM NEKOS.BEST ==========
 async function getNekosGif(action) {
-    // Generate ONE random User-Agent for this request
     const userAgent = generateRandomUserAgent();
-    
+
     const apiUrl = `https://nekos.best/api/v2/${action}`;
     const response = await axios.get(apiUrl, {
-        headers: {
-            'User-Agent': userAgent
-        }
+        headers: { 'User-Agent': userAgent }
     });
-    
+
     const gifUrl = response.data.results[0].url;
-    
-    // Fetch the GIF using the SAME User-Agent
+
     const gifResponse = await axios.get(gifUrl, {
         responseType: 'arraybuffer',
-        headers: {
-            'User-Agent': userAgent
-        },
+        headers: { 'User-Agent': userAgent },
         timeout: 15000
     });
-    
+
     return gifResponse.data;
 }
 
@@ -141,11 +190,11 @@ cmd({
             ? `${sender} is lurking @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is lurking everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("lurk");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -156,54 +205,6 @@ cmd({
         reply(`❌ *Error in .lurk command:*\n\`\`\`${error.message}\`\`\``);
     }
 });
-
-// ==================== MARIGE COMMAND ====================  <-- PASTE HERE
-cmd({
-  pattern: "marige",
-  alias: ["shadi", "marriage", "wedding"],
-  desc: "Randomly pairs two users for marriage with a wedding GIF",
-  react: "💍",
-  category: "fun",
-  filename: __filename
-}, async (conn, mek, m, { from, sender, isGroup, reply }) => {
-  try {
-    if (!isGroup) return reply("❌ This command can only be used in groups!");
-    
-    const groupMetadata = await conn.groupMetadata(from);
-    if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
-    
-    const participants = groupMetadata.participants.map(user => user.id);
-    const botNumber = conn.user.id;
-    
-    const eligibleParticipants = participants.filter(id => id !== sender && id !== botNumber);
-    
-    if (eligibleParticipants.length < 1) return reply("❌ Not enough participants to perform a marriage!");
-    
-    const randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
-    const randomPair = eligibleParticipants[randomIndex];
-    
-    let gifBuffer = await getNekosGif("hug");
-    let videoBuffer = await gifToVideo(gifBuffer);
-    
-    const message = `💍 *Shadi Mubarak!* 💒\n\n👰 @${sender.split("@")[0]} + 🤵 @${randomPair.split("@")[0]}\n\nMay you both live happily ever after! 💖`;
-    
-    await conn.sendMessage(
-      from, 
-      { 
-        video: videoBuffer, 
-        caption: message, 
-        gifPlayback: true, 
-        mentions: [sender, randomPair] 
-      }, 
-      { quoted: mek }
-    );
-    
-  } catch (error) {
-    console.error("❌ Error in .marige command:", error);
-    reply(`❌ *Error in .marige command:*\n\`\`\`${error.message}\`\`\``);
-  }
-});
-
 
 // ==================== KILL COMMAND ====================
 cmd({
@@ -219,18 +220,17 @@ cmd({
         let mentionedUser = m.mentionedJid[0] || (mek.quoted && mek.quoted.sender);
         let isGroup = m.isGroup;
 
-        // Use "shoot" as kill since there's no dedicated kill category
         const category = "shoot";
 
         let message = mentionedUser
             ? `${sender} killed @${mentionedUser.split("@")[0]} 💀`
             : isGroup
             ? `${sender} killed everyone! 💀`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif(category);
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -240,6 +240,53 @@ cmd({
         console.error("❌ Error in .kill command:", error);
         reply(`❌ *Error in .kill command:*\n\`\`\`${error.message}\`\`\``);
     }
+});
+
+// ==================== MARIGE COMMAND ====================
+cmd({
+  pattern: "marige",
+  alias: ["shadi", "marriage", "wedding"],
+  desc: "Randomly pairs two users for marriage with a wedding GIF",
+  react: "💍",
+  category: "fun",
+  filename: __filename
+}, async (conn, mek, m, { from, sender, isGroup, reply }) => {
+  try {
+    if (!isGroup) return reply("❌ This command can only be used in groups!");
+
+    const groupMetadata = await conn.groupMetadata(from);
+    if (!groupMetadata?.participants) return reply("⚠️ Couldn't fetch group members.");
+
+    const participants = groupMetadata.participants.map(user => user.id);
+    const botNumber = conn.user.id;
+
+    const eligibleParticipants = participants.filter(id => id !== sender && id !== botNumber);
+
+    if (eligibleParticipants.length < 1) return reply("❌ Not enough participants to perform a marriage!");
+
+    const randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
+    const randomPair = eligibleParticipants[randomIndex];
+
+    let gifBuffer = await getNekosGif("hug");
+    let videoBuffer = await gifToVideo(gifBuffer);
+
+    const message = `💍 *Shadi Mubarak!* 💒\n\n👰 @${sender.split("@")[0]} + 🤵 @${randomPair.split("@")[0]}\n\nMay you both live happily ever after! 💖`;
+
+    await conn.sendMessage(
+      from,
+      {
+        video: videoBuffer,
+        caption: message,
+        gifPlayback: true,
+        mentions: [sender, randomPair]
+      },
+      { quoted: mek }
+    );
+
+  } catch (error) {
+    console.error("❌ Error in .marige command:", error);
+    reply(`❌ *Error in .marige command:*\n\`\`\`${error.message}\`\`\``);
+  }
 });
 
 // ==================== SHOOT COMMAND ====================
@@ -260,11 +307,11 @@ cmd({
             ? `${sender} shot @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} shot everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("shoot");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -294,11 +341,11 @@ cmd({
             ? `${sender} is sleeping with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is sleeping!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("sleep");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -328,11 +375,11 @@ cmd({
             ? `${sender} clapped for @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} clapped for everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("clap");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -362,11 +409,11 @@ cmd({
             ? `${sender} shrugged at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} shrugged at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("shrug");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -396,11 +443,11 @@ cmd({
             ? `${sender} is staring at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is staring at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("stare");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -430,11 +477,11 @@ cmd({
             ? `${sender} waved at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is waving at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("wave");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -464,11 +511,11 @@ cmd({
             ? `${sender} poked @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} poked everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("poke");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -498,11 +545,11 @@ cmd({
             ? `${sender} is confused by @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is confused!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("confused");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -532,11 +579,11 @@ cmd({
             ? `${sender} smiled at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is smiling at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("smile");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -566,11 +613,11 @@ cmd({
             ? `${sender} pecked @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} pecked everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("peck");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -600,11 +647,11 @@ cmd({
             ? `${sender} winked at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is winking at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("wink");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -634,11 +681,11 @@ cmd({
             ? `${sender} is sipping with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is sipping!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("sip");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -668,11 +715,11 @@ cmd({
             ? `${sender} is blushing at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is blushing!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("blush");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -702,11 +749,11 @@ cmd({
             ? `${sender} is smug at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is feeling smug!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("smug");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -736,11 +783,11 @@ cmd({
             ? `${sender} tickled @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} tickled everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("tickle");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -770,11 +817,11 @@ cmd({
             ? `${sender} yeeted @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is yeeting everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("yeet");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -804,11 +851,11 @@ cmd({
             ? `${sender} is thinking about @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is thinking!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("think");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -838,11 +885,11 @@ cmd({
             ? `${sender} gave a high-five to @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is high-fiving everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("highfive");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -872,11 +919,11 @@ cmd({
             ? `${sender} is feeding @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is feeding everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("feed");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -906,11 +953,11 @@ cmd({
             ? `${sender} wagged at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} wagged at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("wag");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -940,11 +987,11 @@ cmd({
             ? `${sender} bit @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is biting everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("bite");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -974,11 +1021,11 @@ cmd({
             ? `${sender} teehee'd at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} teehee'd at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("teehee");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1008,11 +1055,11 @@ cmd({
             ? `${sender} is shocked by @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is shocked!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("shocked");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1042,11 +1089,11 @@ cmd({
             ? `${sender} bleh'd at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} bleh'd at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("bleh");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1076,11 +1123,11 @@ cmd({
             ? `${sender} is bored by @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is bored!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("bored");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1110,11 +1157,11 @@ cmd({
             ? `${sender} is nomming @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is nomming everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("nom");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1144,11 +1191,11 @@ cmd({
             ? `${sender} nya'd at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} nya'd at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("nya");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1178,11 +1225,11 @@ cmd({
             ? `${sender} yawned at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} yawned at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("yawn");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1212,11 +1259,11 @@ cmd({
             ? `${sender} facepalmed at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} facepalmed at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("facepalm");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1246,11 +1293,11 @@ cmd({
             ? `${sender} cuddled @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is cuddling everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("cuddle");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1280,11 +1327,11 @@ cmd({
             ? `${sender} kicked @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} kicked everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("kick");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1314,11 +1361,11 @@ cmd({
             ? `${sender} is happy with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is happy!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("happy");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1348,11 +1395,11 @@ cmd({
             ? `${sender} carried @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} carried everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("carry");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1382,11 +1429,11 @@ cmd({
             ? `${sender} hugged @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is hugging everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("hug");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1416,11 +1463,11 @@ cmd({
             ? `${sender} kabedon'd @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} kabedon'd everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("kabedon");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1450,11 +1497,11 @@ cmd({
             ? `${sender} called @${mentionedUser.split("@")[0]} baka`
             : isGroup
             ? `${sender} called everyone baka!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("baka");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1484,11 +1531,11 @@ cmd({
             ? `${sender} bonked @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} bonked everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("bonk");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1518,11 +1565,11 @@ cmd({
             ? `${sender} patted @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is patting everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("pat");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1552,11 +1599,11 @@ cmd({
             ? `${sender} is angry at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is angry!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("angry");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1586,11 +1633,11 @@ cmd({
             ? `${sender} spun @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} spun everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("spin");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1620,11 +1667,11 @@ cmd({
             ? `${sender} shook @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} shook everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("shake");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1654,11 +1701,11 @@ cmd({
             ? `${sender} ran from @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} ran from everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("run");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1688,11 +1735,11 @@ cmd({
             ? `${sender} nodded at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} nodded at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("nod");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1722,11 +1769,11 @@ cmd({
             ? `${sender} said nope to @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} said nope to everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("nope");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1756,11 +1803,11 @@ cmd({
             ? `${sender} kissed @${mentionedUser.split("@")[0]} 🥰`
             : isGroup
             ? `${sender} kissed everyone! 💋`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("kiss");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1790,11 +1837,11 @@ cmd({
             ? `${sender} danced with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is dancing with everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("dance");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1824,11 +1871,11 @@ cmd({
             ? `${sender} punched @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} punched everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("punch");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1858,11 +1905,11 @@ cmd({
             ? `${sender} shook hands with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} shook hands with everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("handshake");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1892,11 +1939,11 @@ cmd({
             ? `${sender} slapped @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} slapped everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("slap");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1926,11 +1973,11 @@ cmd({
             ? `${sender} is crying over @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is crying!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("cry");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1960,11 +2007,11 @@ cmd({
             ? `${sender} is using @${mentionedUser.split("@")[0]} as a lap pillow`
             : isGroup
             ? `${sender} is using everyone as a lap pillow!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("lappillow");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -1994,11 +2041,11 @@ cmd({
             ? `${sender} pouted at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} pouted at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("pout");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2028,11 +2075,11 @@ cmd({
             ? `${sender} blew a kiss to @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} blew kisses to everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("blowkiss");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2062,11 +2109,11 @@ cmd({
             ? `${sender} is holding hands with @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} wants to hold hands with everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("handhold");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2096,11 +2143,11 @@ cmd({
             ? `${sender} saluted @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} saluted everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("salute");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2130,11 +2177,11 @@ cmd({
             ? `${sender} gave a thumbs up to @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} gave a thumbs up to everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("thumbsup");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2164,11 +2211,11 @@ cmd({
             ? `${sender} laughed at @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} is laughing at everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("laugh");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },
@@ -2185,7 +2232,7 @@ cmd({
     pattern: "tableflip",
     desc: "Send a tableflip reaction GIF.",
     category: "fun",
-    react: "🪑",
+    react: "😶",
     filename: __filename,
     use: "@tag (optional)",
 }, async (conn, mek, m, { args, q, reply }) => {
@@ -2198,11 +2245,11 @@ cmd({
             ? `${sender} flipped a table on @${mentionedUser.split("@")[0]}`
             : isGroup
             ? `${sender} flipped a table on everyone!`
-            : `> © Powered By KHAN-MD 🖤`;
+            : `> © Powered By JawadTechX 🖤`;
 
         let gifBuffer = await getNekosGif("tableflip");
         let videoBuffer = await gifToVideo(gifBuffer);
-        
+
         await conn.sendMessage(
             mek.chat,
             { video: videoBuffer, caption: message, gifPlayback: true, mentions: [mek.sender, mentionedUser].filter(Boolean) },

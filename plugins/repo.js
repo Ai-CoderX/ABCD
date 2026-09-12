@@ -5,180 +5,171 @@ import { cmd } from '../command.js';
 const __filename = fileURLToPath(import.meta.url);
 
 // ============================================
-// URL VALIDATION
+// HELPERS
 // ============================================
 function isValidChannelPostUrl(url) {
     const pattern = /^https?:\/\/(?:www\.)?whatsapp\.com\/channel\/[a-zA-Z0-9]+\/\d+$/;
     return pattern.test(url);
 }
 
-// ============================================
-// EXTRACT CHANNEL ID + POST ID FROM URL
-// ============================================
 function extractIdsFromUrl(url) {
     const match = url.match(/\/channel\/([a-zA-Z0-9]+)\/(\d+)/);
-    if (match) {
-        return {
-            channelId: match[1],
-            postId: match[2]
-        };
-    }
+    if (match) return { channelId: match[1], postId: match[2] };
     return null;
 }
 
-// ============================================
-// GET CHANNEL JID FROM INVITE
-// ============================================
 async function getChannelJidFromInvite(conn, inviteId) {
     try {
         const metadata = await conn.newsletterMetadata("invite", inviteId);
         if (metadata && metadata.id) {
-            return {
-                jid: metadata.id,
-                name: metadata.name || 'Unknown Channel'
-            };
+            return { jid: metadata.id, name: metadata.name || 'Unknown Channel' };
         }
         return null;
     } catch (e) {
-        console.error("Channel metadata error:", e.message);
         return null;
     }
 }
 
 // ============================================
-// REPORT COMMAND
+// .report1 → w:newsletter:report
 // ============================================
 cmd({
-    pattern: "reportx",
-    alias: ["reportpost", "reportch"],
+    pattern: "report1",
+    alias: ["reportpost1"],
     react: "🚨",
-    desc: "Report a WhatsApp channel post using its link",
+    desc: "Report channel post (Method 1: w:newsletter:report)",
     category: "tools",
-    use: ".report <channel_post_url>",
+    use: ".report1 <url>",
     filename: __filename
 }, async (conn, mek, m, { from, args, reply }) => {
     try {
-        // No args → show usage
-        if (!args[0]) {
-            return reply(`🚨 *REPORT CHANNEL POST*
-
-╭──「 *📌 USAGE* 」
-│
-│ *.report <channel_post_url>*
-│
-│ *Valid URL Format:*
-│ https://whatsapp.com/channel/CHANNEL_ID/POST_ID
-│
-│ *Example:*
-│ .report https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
-│
-│ *Note:*
-│ • Report is anonymous
-│ • No one in the channel will know
-╰─────────────────`);
-        }
-
+        if (!args[0]) return reply("🚨 *Usage:* .report1 <channel_post_url>");
         const url = args[0];
 
-        // Validate URL format
-        if (!isValidChannelPostUrl(url)) {
-            return reply(`❌ *Invalid URL format!*
-
-*Valid Format:*
-https://whatsapp.com/channel/CHANNEL_ID/POST_ID
-
-*Example:*
-.report https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609`);
-        }
-
-        // Extract IDs
+        if (!isValidChannelPostUrl(url)) return reply("❌ Invalid URL format!");
         const ids = extractIdsFromUrl(url);
-        if (!ids) {
-            return reply(`❌ *Failed to extract Channel ID and Post ID from URL!*
+        if (!ids) return reply("❌ Failed to extract IDs!");
 
-Make sure the URL contains both:
-• Channel ID
-• Post ID (numbers at the end)`);
-        }
-
-        // React: processing
         await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
 
-        // Get channel JID from invite ID
         const channelInfo = await getChannelJidFromInvite(conn, ids.channelId);
         if (!channelInfo) {
             await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-            return reply(`❌ *Failed to fetch channel info!*
-
-The channel invite may be invalid or expired.
-Channel ID: ${ids.channelId}`);
+            return reply(`❌ Channel not found!`);
         }
 
         const channelJid = channelInfo.jid;
         const serverId = ids.postId;
 
-        // ============================================
-        // SEND REPORT (Simple - matches WhatsApp UI)
-        // ============================================
+        // METHOD 1
         const result = await conn.query({
             tag: 'iq',
             attrs: {
                 to: channelJid,
                 type: 'set',
-                xmlns: 'w:newsletter'
+                xmlns: 'w:newsletter:report'
             },
             content: [
                 {
                     tag: 'report',
-                    attrs: {},
-                    content: [
-                        {
-                            tag: 'message',
-                            attrs: { server_id: String(serverId) }
-                        }
-                    ]
+                    attrs: {
+                        server_id: String(serverId),
+                        channel_jid: channelJid
+                    }
                 }
             ]
         });
 
-        // Check for error response
         if (result?.attrs?.type === 'error') {
-            throw new Error(
-                result.content?.[0]?.attrs?.text || 'Report failed'
-            );
+            throw new Error(result.content?.[0]?.attrs?.text || 'Report failed');
         }
 
-        // React: success
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
 
-        // Success message
-        return reply(`✅ *Channel post reported successfully!*
+        return reply(`✅ *Method 1 Report Sent*
 
-╭──「 *📋 REPORT DETAILS* 」
-│
-│ 📢 *Channel:* ${channelInfo.name}
-│ 🆔 *Channel JID:* ${channelJid}
-│ 📝 *Post ID:* ${serverId}
-│ 🚨 *Status:* Reported to WhatsApp
-│ 🔒 *Privacy:* Anonymous
-│
-╰─────────────────
-
-> *© Powered By KHAN-MD-♡*`);
+╭──「 *📋 DETAILS* 」
+│ 📢 Channel: ${channelInfo.name}
+│ 🆔 JID: ${channelJid}
+│ 📝 Post ID: ${serverId}
+│ 🔧 Method: w:newsletter:report
+╰─────────────────`);
 
     } catch (error) {
-        console.error("Report command error:", error);
+        console.error("Report1 error:", error);
         await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-        return reply(`❌ *Error reporting post!*
+        return reply(`❌ *Failed!*\n\nError: ${error.message}`);
+    }
+});
 
-*Error:* ${error.message || 'Unknown error'}
+// ============================================
+// .report2 → w:report
+// ============================================
+cmd({
+    pattern: "report2",
+    alias: ["reportpost2"],
+    react: "🚨",
+    desc: "Report channel post (Method 2: w:report)",
+    category: "tools",
+    use: ".report2 <url>",
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    try {
+        if (!args[0]) return reply("🚨 *Usage:* .report2 <channel_post_url>");
+        const url = args[0];
 
-╭──「 *📌 USAGE* 」
-│
-│ *.report <channel_post_url>*
-│
-│ *Example:*
-│ .report https://whatsapp.com/channel/xxx/123
+        if (!isValidChannelPostUrl(url)) return reply("❌ Invalid URL format!");
+        const ids = extractIdsFromUrl(url);
+        if (!ids) return reply("❌ Failed to extract IDs!");
+
+        await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+
+        const channelInfo = await getChannelJidFromInvite(conn, ids.channelId);
+        if (!channelInfo) {
+            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+            return reply(`❌ Channel not found!`);
+        }
+
+        const channelJid = channelInfo.jid;
+        const serverId = ids.postId;
+
+        // METHOD 2
+        const result = await conn.query({
+            tag: 'iq',
+            attrs: {
+                to: 's.whatsapp.net',
+                type: 'set',
+                xmlns: 'w:report'
+            },
+            content: [
+                {
+                    tag: 'report',
+                    attrs: {
+                        jid: channelJid,
+                        server_id: String(serverId)
+                    }
+                }
+            ]
+        });
+
+        if (result?.attrs?.type === 'error') {
+            throw new Error(result.content?.[0]?.attrs?.text || 'Report failed');
+        }
+
+        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+
+        return reply(`✅ *Method 2 Report Sent*
+
+╭──「 *📋 DETAILS* 」
+│ 📢 Channel: ${channelInfo.name}
+│ 🆔 JID: ${channelJid}
+│ 📝 Post ID: ${serverId}
+│ 🔧 Method: w:report
 ╰─────────────────`);
+
+    } catch (error) {
+        console.error("Report2 error:", error);
+        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        return reply(`❌ *Failed!*\n\nError: ${error.message}`);
     }
 });

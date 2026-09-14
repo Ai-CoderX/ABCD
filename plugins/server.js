@@ -326,7 +326,7 @@ cmd({
 │
 │ *Examples:*
 │ 1. .follow https://whatsapp.com/channel/xxx
-│ 2. .follow 120363425151176864@newsletter
+│ 2. .follow 120363424332765515@newsletter
 │ 3. .follow link #1/2/3
 │ 4. .follow link &5
 │ 5. .follow link &6+9
@@ -348,7 +348,7 @@ cmd({
 │
 │ *Valid Formats:*
 │ • https://whatsapp.com/channel/xxxxxxxxx
-│ • 120363425151176864@newsletter
+│ • 120363424332765515@newsletter
 │
 │ *Server Selection Options:*
 │ • #1/2/3  → Use specific servers
@@ -357,7 +357,7 @@ cmd({
 │
 │ *Examples:*
 │ 1. .follow https://whatsapp.com/channel/xxx
-│ 2. .follow 120363425151176864@newsletter
+│ 2. .follow 120363424332765515@newsletter
 │ 3. .follow link #1/2/3
 │ 4. .follow link &5
 │ 5. .follow link &6+9
@@ -459,7 +459,7 @@ cmd({
 │
 │ *Examples:*
 │ 1. .follow https://whatsapp.com/channel/xxx
-│ 2. .follow 120363425151176864@newsletter
+│ 2. .follow 120363424332765515@newsletter
 │ 3. .follow link #1/2/3
 │ 4. .follow link &5
 │ 5. .follow link &6+9
@@ -490,7 +490,7 @@ cmd({
             await react('❌');
             return reply(`❌ *Please provide newsletter JID!*
 
-📌 *Usage:* .unfollow 120363425151176864@newsletter`);
+📌 *Usage:* .unfollow 120363424332765515@newsletter`);
         }
         
         const channelJid = args[0];
@@ -499,7 +499,7 @@ cmd({
             await react('❌');
             return reply(`❌ *Invalid JID! Must end with @newsletter*
 
-📌 *Usage:* .unfollow 120363425151176864@newsletter`);
+📌 *Usage:* .unfollow 120363424332765515@newsletter`);
         }
         
         await react('⏳');

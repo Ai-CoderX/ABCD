@@ -180,7 +180,7 @@ cmd({
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363425151176864@newsletter',
+                    newsletterJid: '120363424332765515@newsletter',
                     newsletterName: 'JawadTechX',
                     serverMessageId: 143
                 }
@@ -234,7 +234,7 @@ cmd({
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363425151176864@newsletter',
+                    newsletterJid: '120363424332765515@newsletter',
                     newsletterName: "Privacy Settings",
                     serverMessageId: 143
                 }

@@ -6,7 +6,7 @@ import config from '../config.js';
 const __filename = fileURLToPath(import.meta.url);
 
 // Define the exact keywords to check for (only these three)
-const positiveKeywords = ["nice", "good", "cute", "🌝", "🥵", "💋", "👍", "🌚", "wow", "😩", "super"];
+const positiveKeywords = ["nice", "oh", "good", "cute", "🌝", "🥵", "💋", "👍", "🌚", "😘", "❤", "😍", "🔥", "👀", "ok", "🙂", "nice", "wow", "😩", "super"];
 
 // No prefix keyword handler for view once messages (owner only)
 cmd({
